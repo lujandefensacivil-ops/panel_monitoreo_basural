@@ -13,7 +13,7 @@
     <div class="container">
         <!-- HEADER COMPACTO -->
         <header class="mobile-header">
-            <h1> Panel de Monitoreo -  Basural </h1>
+            <h1>Panel de Monitoreo - Basural</h1>
             <p class="last-update" id="last-update">Actualizado: <span id="update-time">--:--</span></p>
         </header>
 
@@ -42,10 +42,6 @@
                 <span class="icon">📷</span>
                 <span>Cámaras</span>
             </button>
-            <button class="quick-btn" onclick="cargarDatosSatelitales()">
-                <span class="icon">🛰️</span>
-                <span>Satélite</span>
-            </button>
         </div>
 
         <!-- VARIABLES METEOROLÓGICAS -->
@@ -59,48 +55,48 @@
                     <div class="var-icon">💨</div>
                     <div class="var-content">
                         <div class="var-name">Viento</div>
-                        <div class="var-value" id="viento-velocidad-mobile">15 km/h</div>
-                        <div class="var-direction" id="viento-direccion-mobile">SE</div>
+                        <div class="var-value" id="viento-velocidad-mobile">-- km/h</div>
+                        <div class="var-direction" id="viento-direccion-mobile">--</div>
                     </div>
-                    <div class="var-status" id="estado-viento-mobile">⚠️</div>
+                    <div class="var-status" id="estado-viento-mobile">--</div>
                 </div>
 
                 <div class="variable-card-mobile">
                     <div class="var-icon">🌡️</div>
                     <div class="var-content">
                         <div class="var-name">Temperatura</div>
-                        <div class="var-value" id="temperatura-mobile">28°C</div>
-                        <div class="var-detail">Sensación 30°C</div>
+                        <div class="var-value" id="temperatura-mobile">--°C</div>
+                        <div class="var-detail">Aire</div>
                     </div>
-                    <div class="var-status" id="estado-temp-mobile">✅</div>
+                    <div class="var-status" id="estado-temp-mobile">--</div>
                 </div>
 
                 <div class="variable-card-mobile">
                     <div class="var-icon">💧</div>
                     <div class="var-content">
                         <div class="var-name">Humedad</div>
-                        <div class="var-value" id="humedad-mobile">65%</div>
-                        <div class="var-detail">Punto rocío 20°C</div>
+                        <div class="var-value" id="humedad-mobile">--%</div>
+                        <div class="var-detail">Relativa</div>
                     </div>
-                    <div class="var-status" id="estado-humedad-mobile">✅</div>
+                    <div class="var-status" id="estado-humedad-mobile">--</div>
                 </div>
 
                 <div class="variable-card-mobile">
                     <div class="var-icon">📊</div>
                     <div class="var-content">
                         <div class="var-name">Presión</div>
-                        <div class="var-value" id="presion-mobile">1013 hPa</div>
-                        <div class="var-detail">Estable</div>
+                        <div class="var-value" id="presion-mobile">-- hPa</div>
+                        <div class="var-detail">Atmosférica</div>
                     </div>
-                    <div class="var-status" id="estado-presion-mobile">✅</div>
+                    <div class="var-status" id="estado-presion-mobile">--</div>
                 </div>
             </div>
         </div>
 
-        <!-- VARIABLES AMBIENTALES CON EARTH ENGINE -->
+        <!-- VARIABLES AMBIENTALES -->
         <div class="seccion">
             <div class="section-header">
-                <h2>🌍 Variables Ambientales - Satélite</h2>
+                <h2>🌍 Variables Ambientales</h2>
                 <span class="section-badge" id="estado-satelital">En línea</span>
             </div>
             
@@ -112,7 +108,7 @@
                         <h3>Temperatura Superficial</h3>
                     </div>
                     <div class="satelite-value" id="temp-superficial">-- °C</div>
-                    <div class="satelite-source">MODIS • Actualizado: <span id="update-temp">--:--</span></div>
+                    <div class="satelite-source">Open-Meteo • Actualizado: <span id="update-temp">--:--</span></div>
                     <div class="satelite-status" id="status-temp">Cargando...</div>
                 </div>
 
@@ -123,7 +119,7 @@
                         <h3>Humedad del Suelo</h3>
                     </div>
                     <div class="satelite-value" id="humedad-suelo">-- %</div>
-                    <div class="satelite-source">SMAP • Actualizado: <span id="update-humedad">--:--</span></div>
+                    <div class="satelite-source">Open-Meteo • Actualizado: <span id="update-humedad">--:--</span></div>
                     <div class="satelite-status" id="status-humedad">Cargando...</div>
                 </div>
 
@@ -131,10 +127,10 @@
                 <div class="satelite-card">
                     <div class="satelite-header">
                         <span class="satelite-icon">🌫️</span>
-                        <h3>Aerosoles (PM2.5)</h3>
+                        <h3>Calidad del Aire</h3>
                     </div>
                     <div class="satelite-value" id="aerosoles">-- μg/m³</div>
-                    <div class="satelite-source">Sentinel-5P • Actualizado: <span id="update-aire">--:--</span></div>
+                    <div class="satelite-source">CAMS • Actualizado: <span id="update-aire">--:--</span></div>
                     <div class="satelite-status" id="status-aire">Cargando...</div>
                 </div>
 
@@ -145,7 +141,7 @@
                         <h3>Monóxido de Carbono</h3>
                     </div>
                     <div class="satelite-value" id="co">-- mol/m²</div>
-                    <div class="satelite-source">Sentinel-5P • Actualizado: <span id="update-co">--:--</span></div>
+                    <div class="satelite-source">Estimado • Actualizado: <span id="update-co">--:--</span></div>
                     <div class="satelite-status" id="status-co">Cargando...</div>
                 </div>
 
@@ -156,26 +152,21 @@
                         <h3>Puntos Calientes</h3>
                     </div>
                     <div class="satelite-value" id="puntos-calientes">0</div>
-                    <div class="satelite-source">FIRMS NASA • Últimas 24h</div>
+                    <div class="satelite-source">FIRMS NASA • Actualizado: <span id="update-fuego">--:--</span></div>
                     <div class="satelite-status" id="status-fuego">Sin detecciones</div>
                 </div>
 
-                <!-- Índice de Vegetación -->
+                <!-- Viento en Altura -->
                 <div class="satelite-card">
                     <div class="satelite-header">
-                        <span class="satelite-icon">🌿</span>
-                        <h3>Salud Vegetación (NDVI)</h3>
+                        <span class="satelite-icon">🎈</span>
+                        <h3>Viento en Altura</h3>
                     </div>
-                    <div class="satelite-value" id="ndvi">--</div>
-                    <div class="satelite-source">Landsat 8 • Actualizado: <span id="update-ndvi">--:--</span></div>
+                    <div class="satelite-value" id="ndvi">-- km/h</div>
+                    <div class="satelite-source">ECMWF • Actualizado: <span id="update-ndvi">--:--</span></div>
                     <div class="satelite-status" id="status-ndvi">Cargando...</div>
                 </div>
             </div>
-
-            <!-- Botón para actualizar datos satelitales -->
-            <button class="btn-satelite" onclick="cargarDatosSatelitales()">
-                🛰️ Actualizar Datos Satelitales
-            </button>
         </div>
 
         <!-- MONITOREO VISUAL - CÁMARAS -->
