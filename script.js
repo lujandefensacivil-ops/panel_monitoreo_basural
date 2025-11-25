@@ -1,36 +1,45 @@
-// Configuración del sistema
+// Configuración del sistema BASADA EN CONDICIONES REALES
 const config = {
+    // Direcciones de VIENTO NORTE que traen humo a la ciudad
     direccionesRiesgo: {
-        'SE': { nivel: 'roja', desc: 'ALTO RIESGO - Viento directo a ciudad' },
-        'SO': { nivel: 'roja', desc: 'ALTO RIESGO - Viento directo a ciudad' },
-        'S': { nivel: 'naranja', desc: 'RIESGO MODERADO - Posible afectación' },
+        'N': { nivel: 'roja', desc: 'ALTO RIESGO - Viento norte directo a ciudad' },
+        'NO': { nivel: 'roja', desc: 'ALTO RIESGO - Viento noroeste a ciudad' },
+        'NE': { nivel: 'roja', desc: 'ALTO RIESGO - Viento noreste a ciudad' },
+        'O': { nivel: 'naranja', desc: 'RIESGO MODERADO - Posible afectación' },
         'E': { nivel: 'naranja', desc: 'RIESGO MODERADO - Dirección desfavorable' },
-        'NE': { nivel: 'amarilla', desc: 'ATENCIÓN - Monitorear situación' },
-        'NO': { nivel: 'amarilla', desc: 'ATENCIÓN - Monitorear situación' },
-        'N': { nivel: 'verde', desc: 'SITUACIÓN FAVORABLE' },
-        'O': { nivel: 'verde', desc: 'SITUACIÓN FAVORABLE' }
+        'SO': { nivel: 'amarilla', desc: 'ATENCIÓN - Monitorear situación' },
+        'SE': { nivel: 'amarilla', desc: 'ATENCIÓN - Monitorear situación' },
+        'S': { nivel: 'verde', desc: 'SITUACIÓN FAVORABLE' }
+    },
+    
+    // Umbrales de riesgo
+    umbrales: {
+        vientoAlerta: 10,        // km/h - mínimo para activar alerta
+        vientoExtremo: 25,       // km/h - viento fuerte empeora
+        temperaturaAlta: 30,     // °C - aumenta probabilidad incendios
+        presionBaja: 1012        // hPa - inestabilidad atmosférica
     }
 };
 
 // Estado inicial
 let estadoActual = 'verde';
 
-// ===== DATOS METEOROLÓGICOS REALES =====
+// ===== DATOS METEOROLÓGICOS REALES - COPERNICUS =====
 async function cargarDatosReales() {
     try {
-        console.log('🌤️ Cargando datos reales...');
+        console.log('🌤️ Cargando datos de Copernicus...');
         
-        // API gratuita para Luján (-34.57, -59.10)
-        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.57&longitude=-59.10&current=temperature_2m,wind_speed_10m,wind_direction_10m,relative_humidity_2m,surface_pressure,is_day&wind_speed_unit=km_h&timezone=America%2FSao_Paulo');
+        // Usamos Open-Meteo que accede a datos ECMWF/Copernicus GRATIS
+        const response = await fetch('https://api.open-meteo.com/v1/ecmwf?latitude=-34.57&longitude=-59.10&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m&wind_speed_unit=km_h&timezone=America%2FSao_Paulo');
         
         if (!response.ok) throw new Error('Error en la API');
         
         const data = await response.json();
         const current = data.current;
         
-        console.log('Datos reales recibidos:', current);
+        console.log('Datos ECMWF recibidos:', current);
 
-        // Actualizar interfaz con datos REALES
+        // Actualizar interfaz con datos REALES de ECMWF
         document.getElementById('viento-velocidad-mobile').textContent = 
             `${Math.round(current.wind_speed_10m)} km/h`;
         document.getElementById('viento-direccion-mobile').textContent = 
@@ -42,78 +51,210 @@ async function cargarDatosReales() {
         document.getElementById('presion-mobile').textContent = 
             `${Math.round(current.surface_pressure)} hPa`;
 
-        // Actualizar estados y semáforo con datos REALES
+        // Actualizar estados individuales
         actualizarEstadosVariablesReales(current);
+        
+        // Calcular nivel de alerta con todos los factores
         actualizarSemaforoConDatosReales(current);
         
-        // Feedback visual
-        mostrarMensaje('✅ Datos actualizados', 'success');
+        mostrarMensaje('✅ Datos ECMWF actualizados', 'success');
         return true;
         
     } catch (error) {
-        console.error('Error cargando datos reales:', error);
-        // Fallback a datos simulados
-        simularDatosReales();
-        mostrarMensaje('⚠️ Usando datos simulados', 'warning');
+        console.error('Error cargando datos ECMWF:', error);
+        mostrarMensaje('❌ Error cargando datos ECMWF', 'error');
         return false;
     }
 }
 
+// ===== ALTERNATIVA: OPEN-METEO CON MÚLTIPLES MODELOS =====
+async function cargarDatosMultiModelo() {
+    try {
+        console.log('🌤️ Cargando datos multi-modelo...');
+        
+        // Open-Meteo con acceso a múltiples modelos incluyendo ECMWF
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.57&longitude=-59.10&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m,precipitation,cloud_cover&wind_speed_unit=km_h&timezone=America%2FSao_Paulo&models=ecmwf_ifs');
+        
+        if (!response.ok) throw new Error('Error en la API');
+        
+        const data = await response.json();
+        const current = data.current;
+        
+        console.log('Datos multi-modelo recibidos:', current);
+
+        // Actualizar interfaz
+        document.getElementById('viento-velocidad-mobile').textContent = 
+            `${Math.round(current.wind_speed_10m)} km/h`;
+        document.getElementById('viento-direccion-mobile').textContent = 
+            gradosADireccion(current.wind_direction_10m);
+        document.getElementById('temperatura-mobile').textContent = 
+            `${Math.round(current.temperature_2m)}°C`;
+        document.getElementById('humedad-mobile').textContent = 
+            `${Math.round(current.relative_humidity_2m)}%`;
+        document.getElementById('presion-mobile').textContent = 
+            `${Math.round(current.surface_pressure)} hPa`;
+
+        // Actualizar estados y semáforo
+        actualizarEstadosVariablesReales(current);
+        actualizarSemaforoConDatosReales(current);
+        
+        mostrarMensaje('✅ Datos multi-modelo actualizados', 'success');
+        return true;
+        
+    } catch (error) {
+        console.error('Error cargando datos multi-modelo:', error);
+        // Fallback a API básica
+        return await cargarDatosBasicos();
+    }
+}
+
+// ===== API BÁSICA COMO FALLBACK =====
+async function cargarDatosBasicos() {
+    try {
+        console.log('🌤️ Cargando datos básicos...');
+        
+        // Open-Meteo básico (siempre funciona)
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.57&longitude=-59.10&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m&wind_speed_unit=km_h&timezone=America%2FSao_Paulo');
+        
+        if (!response.ok) throw new Error('Error en la API');
+        
+        const data = await response.json();
+        const current = data.current;
+        
+        console.log('Datos básicos recibidos:', current);
+
+        // Actualizar interfaz
+        document.getElementById('viento-velocidad-mobile').textContent = 
+            `${Math.round(current.wind_speed_10m)} km/h`;
+        document.getElementById('viento-direccion-mobile').textContent = 
+            gradosADireccion(current.wind_direction_10m);
+        document.getElementById('temperatura-mobile').textContent = 
+            `${Math.round(current.temperature_2m)}°C`;
+        document.getElementById('humedad-mobile').textContent = 
+            `${Math.round(current.relative_humidity_2m)}%`;
+        document.getElementById('presion-mobile').textContent = 
+            `${Math.round(current.surface_pressure)} hPa`;
+
+        actualizarEstadosVariablesReales(current);
+        actualizarSemaforoConDatosReales(current);
+        
+        mostrarMensaje('✅ Datos básicos actualizados', 'success');
+        return true;
+        
+    } catch (error) {
+        console.error('Error cargando datos básicos:', error);
+        mostrarMensaje('❌ Error de conexión', 'error');
+        return false;
+    }
+}
+
+// Convertir grados a dirección cardinal
 function gradosADireccion(grados) {
     const direcciones = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
-    return direcciones[Math.round(grados / 45) % 8];
+    return direcciones[Math.round((grados % 360) / 45) % 8];
+}
+
+// Verificar si está en el arco de viento norte peligroso (300° - 45°)
+function esVientoNortePeligroso(grados) {
+    const gradosNormalizados = (grados + 360) % 360;
+    return (gradosNormalizados >= 300 || gradosNormalizados <= 45);
+}
+
+// Calcular nivel de riesgo basado en TODOS los factores
+function calcularNivelRiesgo(datos) {
+    const vientoDireccion = gradosADireccion(datos.wind_direction_10m);
+    const vientoVelocidad = datos.wind_speed_10m;
+    const temperatura = datos.temperature_2m;
+    const presion = datos.surface_pressure;
+    
+    let nivelBase = 'verde';
+    let factores = [];
+    
+    // FACTOR 1: VIENTO NORTE (principal)
+    if (esVientoNortePeligroso(datos.wind_direction_10m)) {
+        if (vientoVelocidad > config.umbrales.vientoAlerta) {
+            factores.push('viento_norte');
+            nivelBase = config.direccionesRiesgo[vientoDireccion].nivel;
+            
+            // Viento fuerte empeora la situación
+            if (vientoVelocidad > config.umbrales.vientoExtremo) {
+                factores.push('viento_fuerte');
+                if (nivelBase === 'roja') nivelBase = 'negra';
+                else if (nivelBase === 'naranja') nivelBase = 'roja';
+            }
+        }
+    }
+    
+    // FACTOR 2: TEMPERATURA ALTA (aumenta riesgo incendios)
+    if (temperatura > config.umbrales.temperaturaAlta) {
+        factores.push('temperatura_alta');
+        if (nivelBase === 'verde') nivelBase = 'amarilla';
+        else if (nivelBase === 'amarilla') nivelBase = 'naranja';
+        else if (nivelBase === 'naranja') nivelBase = 'roja';
+    }
+    
+    // FACTOR 3: PRESIÓN BAJA (inestabilidad)
+    if (presion < config.umbrales.presionBaja) {
+        factores.push('presion_baja');
+        if (nivelBase === 'verde') nivelBase = 'amarilla';
+        else if (nivelBase === 'amarilla') nivelBase = 'naranja';
+    }
+    
+    console.log(`Factores de riesgo: ${factores.join(', ')} → Nivel: ${nivelBase}`);
+    return nivelBase;
 }
 
 function actualizarEstadosVariablesReales(datos) {
-    // Estado de velocidad de viento
-    let estadoViento = 'Normal';
-    if (datos.wind_speed_10m > 25) estadoViento = '🚨 Fuerte';
-    else if (datos.wind_speed_10m > 15) estadoViento = '⚠️ Moderado';
+    const vientoDireccion = gradosADireccion(datos.wind_direction_10m);
+    
+    // Estado de viento
+    let estadoViento = '✅ Normal';
+    if (esVientoNortePeligroso(datos.wind_direction_10m) && datos.wind_speed_10m > config.umbrales.vientoAlerta) {
+        estadoViento = '🚨 Norte Peligroso';
+    } else if (datos.wind_speed_10m > config.umbrales.vientoExtremo) {
+        estadoViento = '⚠️ Muy Fuerte';
+    } else if (datos.wind_speed_10m > config.umbrales.vientoAlerta) {
+        estadoViento = '⚠️ Fuerte';
+    }
     document.getElementById('estado-viento-mobile').textContent = estadoViento;
 
     // Estado de temperatura
-    let estadoTemp = 'Normal';
-    if (datos.temperature_2m > 35) estadoTemp = '🚨 Alta';
-    else if (datos.temperature_2m > 30) estadoTemp = '⚠️ Elevada';
+    let estadoTemp = '✅ Normal';
+    if (datos.temperature_2m > config.umbrales.temperaturaAlta) {
+        estadoTemp = '🔥 Alta';
+    } else if (datos.temperature_2m > 25) {
+        estadoTemp = '⚠️ Elevada';
+    }
     document.getElementById('estado-temp-mobile').textContent = estadoTemp;
 
     // Estado de humedad
-    let estadoHumedad = 'Normal';
-    if (datos.relative_humidity_2m < 30) estadoHumedad = '⚠️ Baja';
-    else if (datos.relative_humidity_2m > 80) estadoHumedad = '⚠️ Alta';
+    let estadoHumedad = '✅ Normal';
+    if (datos.relative_humidity_2m < 30) {
+        estadoHumedad = '🌵 Muy Baja';
+    } else if (datos.relative_humidity_2m < 40) {
+        estadoHumedad = '⚠️ Baja';
+    } else if (datos.relative_humidity_2m > 80) {
+        estadoHumedad = '💧 Alta';
+    }
     document.getElementById('estado-humedad-mobile').textContent = estadoHumedad;
 
     // Estado de presión
-    let estadoPresion = 'Estable';
-    if (datos.surface_pressure < 1000 || datos.surface_pressure > 1020) estadoPresion = '⚠️ Variable';
+    let estadoPresion = '✅ Estable';
+    if (datos.surface_pressure < config.umbrales.presionBaja) {
+        estadoPresion = '📉 Baja';
+    } else if (datos.surface_pressure > 1020) {
+        estadoPresion = '📈 Alta';
+    }
     document.getElementById('estado-presion-mobile').textContent = estadoPresion;
 }
 
 function actualizarSemaforoConDatosReales(datos) {
-    const direccion = gradosADireccion(datos.wind_direction_10m);
-    const velocidad = datos.wind_speed_10m;
-    
-    let nivel = 'verde';
-    
-    // Lógica de riesgo con datos REALES (usa tu configuración existente)
-    nivel = config.direccionesRiesgo[direccion].nivel;
-    
-    // Velocidad empeora el escenario (misma lógica que tenías)
-    if (velocidad > 30 && (nivel === 'naranja' || nivel === 'roja')) {
-        nivel = 'negra';
-    } else if (velocidad > 20 && nivel === 'roja') {
-        nivel = 'negra';
-    } else if (velocidad > 25) {
-        if (nivel === 'verde') nivel = 'amarilla';
-        else if (nivel === 'amarilla') nivel = 'naranja';
-    }
-    
+    const nivel = calcularNivelRiesgo(datos);
     actualizarSemaforoMobile(nivel);
 }
 
 function mostrarMensaje(texto, tipo) {
     console.log(`[${tipo}] ${texto}`);
-    // Podés agregar un toast notification aquí después
 }
 
 // ===== SISTEMA DE SEMÁFORO =====
@@ -137,7 +278,7 @@ function actualizarSemaforoMobile(nivel) {
     
     textoEstado.textContent = obtenerTextoEstadoMobile(nivel);
     textoEstado.className = `estado-${nivel}`;
-    descripcionEstado.textContent = obtenerDescripcionEstadoMobile(nivel);
+    descripcionEstado.textContent = obtenerDescripcionEstado(nivel);
     
     estadoActual = nivel;
     actualizarTimestamp();
@@ -154,240 +295,15 @@ function obtenerTextoEstadoMobile(nivel) {
     return estados[nivel] || '--';
 }
 
-function obtenerDescripcionEstadoMobile(nivel) {
+function obtenerDescripcionEstado(nivel) {
     const descripciones = {
-        'verde': 'Sin riesgo de humo',
-        'amarilla': 'Monitorear condiciones',
-        'naranja': 'Posible afectación',
-        'roja': 'Alta probabilidad humo',
-        'negra': 'EMERGENCIA ACTIVA'
+        'verde': 'Condiciones favorables. Bajo riesgo de humo.',
+        'amarilla': 'Monitorear condiciones. Factores de riesgo presentes.',
+        'naranja': 'Alerta. Posible afectación por humo.',
+        'roja': 'Alta alerta. Viento norte con probabilidad de humo en ciudad.',
+        'negra': 'Emergencia. Condiciones extremas. Alto riesgo de humo.'
     };
     return descripciones[nivel] || '';
-}
-
-// ===== SISTEMA DE DATOS METEOROLÓGICOS (SIMULADOS COMO FALLBACK) =====
-function simularDatosReales() {
-    // Velocidad de viento aleatoria
-    const velocidad = 10 + Math.random() * 35;
-    const direcciones = ['SE', 'SO', 'S', 'E', 'NE', 'NO', 'N', 'O'];
-    const direccion = direcciones[Math.floor(Math.random() * direcciones.length)];
-    
-    // Actualizar displays móviles
-    document.getElementById('viento-velocidad-mobile').textContent = `${Math.round(velocidad)} km/h`;
-    document.getElementById('viento-direccion-mobile').textContent = direccion;
-    
-    document.getElementById('temperatura-mobile').textContent = `${Math.round(20 + Math.random() * 15)}°C`;
-    document.getElementById('humedad-mobile').textContent = `${Math.round(40 + Math.random() * 40)}%`;
-    document.getElementById('presion-mobile').textContent = `${Math.round(1000 + Math.random() * 30)} hPa`;
-    
-    // Actualizar estados individuales
-    actualizarEstadosVariables(velocidad, direccion);
-    
-    // Actualizar semáforo basado en condiciones
-    actualizarSemaforoAutomatico(velocidad, direccion);
-    
-    actualizarTimestamp();
-}
-
-function actualizarEstadosVariables(velocidad, direccion) {
-    // Estado de velocidad de viento
-    let estadoVientoVel = 'Normal';
-    if (velocidad > 30) estadoVientoVel = '🚨 Alto';
-    else if (velocidad > 20) estadoVientoVel = '⚠️ Moderado';
-    document.getElementById('estado-viento-mobile').textContent = estadoVientoVel;
-    
-    // Estado de dirección de viento
-    const estadoDir = config.direccionesRiesgo[direccion];
-    document.getElementById('estado-viento-mobile').textContent = estadoDir.desc.split(' - ')[0];
-    
-    // Simular otros estados
-    document.getElementById('estado-temp-mobile').textContent = 'Normal';
-    document.getElementById('estado-humedad-mobile').textContent = 'Normal';
-    document.getElementById('estado-presion-mobile').textContent = 'Estable';
-}
-
-function actualizarSemaforoAutomatico(velocidad, direccion) {
-    let nivel = 'verde';
-    
-    // Dirección es el factor principal
-    nivel = config.direccionesRiesgo[direccion].nivel;
-    
-    // Velocidad empeora el escenario
-    if (velocidad > 30 && (nivel === 'naranja' || nivel === 'roja')) {
-        nivel = 'negra';
-    } else if (velocidad > 20 && nivel === 'roja') {
-        nivel = 'negra';
-    } else if (velocidad > 25) {
-        if (nivel === 'verde') nivel = 'amarilla';
-        else if (nivel === 'amarilla') nivel = 'naranja';
-    }
-    
-    actualizarSemaforoMobile(nivel);
-}
-
-// ===== SISTEMA EARTH ENGINE (SIMULADO) =====
-class EarthEngineMonitor {
-    constructor() {
-        this.coordenadasLujan = [-59.105, -34.570];
-        this.datos = {};
-    }
-
-    async cargarDatosSatelitales() {
-        this.mostrarEstado('Cargando datos satelitales...');
-        
-        try {
-            // Simular delay de red
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            this.datos.temperaturaSuperficial = this.simularTemperatura();
-            this.datos.humedadSuelo = this.simularHumedad();
-            this.datos.aerosoles = this.simularAerosoles();
-            this.datos.co = this.simularCO();
-            this.datos.puntosCalientes = this.simularPuntosCalientes();
-            this.datos.ndvi = this.simularNDVI();
-            
-            this.actualizarUI();
-            this.mostrarEstado('Datos actualizados correctamente');
-            
-        } catch (error) {
-            console.error('Error cargando datos:', error);
-            this.mostrarEstado('Error cargando datos satelitales', 'error');
-        }
-    }
-
-    simularTemperatura() {
-        const base = 25;
-        const variacion = (Math.random() - 0.5) * 15;
-        const temperatura = base + variacion;
-        
-        return {
-            valor: Math.round(temperatura * 10) / 10,
-            unidad: '°C',
-            riesgo: temperatura > 35 ? 'alto' : temperatura > 30 ? 'medio' : 'bajo',
-            timestamp: new Date()
-        };
-    }
-
-    simularHumedad() {
-        const humedad = 20 + Math.random() * 40;
-        
-        return {
-            valor: Math.round(humedad),
-            unidad: '%',
-            riesgo: humedad < 25 ? 'alto' : humedad < 35 ? 'medio' : 'bajo',
-            timestamp: new Date()
-        };
-    }
-
-    simularAerosoles() {
-        const base = 15;
-        const variacion = Math.random() * 30;
-        
-        return {
-            valor: Math.round(base + variacion),
-            unidad: 'μg/m³',
-            calidad: base + variacion > 35 ? 'mala' : base + variacion > 20 ? 'moderada' : 'buena',
-            timestamp: new Date()
-        };
-    }
-
-    simularCO() {
-        const co = 0.01 + Math.random() * 0.05;
-        
-        return {
-            valor: co.toFixed(4),
-            unidad: 'mol/m²',
-            riesgo: co > 0.04 ? 'alto' : co > 0.02 ? 'medio' : 'bajo',
-            timestamp: new Date()
-        };
-    }
-
-    simularPuntosCalientes() {
-        const probabilidadIncendio = 0.1;
-        const puntos = Math.random() < probabilidadIncendio ? Math.floor(Math.random() * 5) + 1 : 0;
-        
-        return {
-            valor: puntos,
-            unidad: 'puntos',
-            alerta: puntos > 0,
-            timestamp: new Date()
-        };
-    }
-
-    simularNDVI() {
-        const ndvi = 0.3 + Math.random() * 0.5;
-        
-        return {
-            valor: ndvi.toFixed(2),
-            unidad: 'índice',
-            salud: ndvi > 0.6 ? 'alta' : ndvi > 0.4 ? 'media' : 'baja',
-            timestamp: new Date()
-        };
-    }
-
-    actualizarUI() {
-        // Temperatura superficial
-        const temp = this.datos.temperaturaSuperficial;
-        document.getElementById('temp-superficial').textContent = `${temp.valor} ${temp.unidad}`;
-        document.getElementById('update-temp').textContent = this.formatearHora(temp.timestamp);
-        document.getElementById('status-temp').textContent = this.getTextoRiesgo(temp.riesgo);
-        document.getElementById('status-temp').className = `satelite-status riesgo-${temp.riesgo}`;
-
-        // Humedad suelo
-        const humedad = this.datos.humedadSuelo;
-        document.getElementById('humedad-suelo').textContent = `${humedad.valor} ${humedad.unidad}`;
-        document.getElementById('update-humedad').textContent = this.formatearHora(humedad.timestamp);
-        document.getElementById('status-humedad').textContent = this.getTextoRiesgo(humedad.riesgo);
-        document.getElementById('status-humedad').className = `satelite-status riesgo-${humedad.riesgo}`;
-
-        // Aerosoles
-        const aerosoles = this.datos.aerosoles;
-        document.getElementById('aerosoles').textContent = `${aerosoles.valor} ${aerosoles.unidad}`;
-        document.getElementById('update-aire').textContent = this.formatearHora(aerosoles.timestamp);
-        document.getElementById('status-aire').textContent = `Calidad ${aerosoles.calidad}`;
-        document.getElementById('status-aire').className = `satelite-status calidad-${aerosoles.calidad}`;
-
-        // Monóxido de carbono
-        const co = this.datos.co;
-        document.getElementById('co').textContent = `${co.valor} ${co.unidad}`;
-        document.getElementById('update-co').textContent = this.formatearHora(co.timestamp);
-        document.getElementById('status-co').textContent = this.getTextoRiesgo(co.riesgo);
-        document.getElementById('status-co').className = `satelite-status riesgo-${co.riesgo}`;
-
-        // Puntos calientes
-        const fuego = this.datos.puntosCalientes;
-        document.getElementById('puntos-calientes').textContent = fuego.valor;
-        document.getElementById('status-fuego').textContent = 
-            fuego.alerta ? `🚨 ${fuego.valor} puntos detectados` : 'Sin detecciones';
-        document.getElementById('status-fuego').className = `satelite-status ${fuego.alerta ? 'alerta-activa' : ''}`;
-
-        // NDVI
-        const ndvi = this.datos.ndvi;
-        document.getElementById('ndvi').textContent = ndvi.valor;
-        document.getElementById('update-ndvi').textContent = this.formatearHora(ndvi.timestamp);
-        document.getElementById('status-ndvi').textContent = `Salud ${ndvi.salud}`;
-        document.getElementById('status-ndvi').className = `satelite-status salud-${ndvi.salud}`;
-    }
-
-    getTextoRiesgo(riesgo) {
-        const textos = {
-            'alto': '🚨 Riesgo Alto',
-            'medio': '⚠️ Riesgo Medio', 
-            'bajo': '✅ Riesgo Bajo'
-        };
-        return textos[riesgo] || 'Desconocido';
-    }
-
-    formatearHora(fecha) {
-        return fecha.toLocaleTimeString('es-AR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-    }
-
-    mostrarEstado(mensaje, tipo = 'info') {
-        console.log(`[EarthEngine] ${mensaje}`);
-    }
 }
 
 // ===== SISTEMA DE CÁMARAS =====
@@ -429,18 +345,20 @@ function mostrarCamaras() {
 
 // ===== FUNCIONES GLOBALES =====
 async function actualizarDatos() {
-    const exito = await cargarDatosReales();  // ← Usar datos REALES primero
+    // Intentar con ECMWF primero, luego fallback
+    const exito = await cargarDatosMultiModelo();
     if (!exito) {
-        simularDatosReales();  // ← Fallback a simulados si falla
+        await cargarDatosBasicos();
     }
-    cargarDatosSatelitales();
     
     // Feedback visual
-    const btn = event.target;
-    btn.style.background = '#2ecc71';
-    setTimeout(() => {
-        btn.style.background = '';
-    }, 1000);
+    const btn = event?.target;
+    if (btn) {
+        btn.style.background = '#2ecc71';
+        setTimeout(() => {
+            btn.style.background = '';
+        }, 1000);
+    }
     
     if ('vibrate' in navigator) {
         navigator.vibrate(100);
@@ -454,40 +372,15 @@ function actualizarTimestamp() {
 }
 
 // ===== INICIALIZACIÓN =====
-const monitorSatelital = new EarthEngineMonitor();
-
-// Función global para cargar datos satelitales
-function cargarDatosSatelitales() {
-    monitorSatelital.cargarDatosSatelitales();
-    
-    if ('vibrate' in navigator) {
-        navigator.vibrate(100);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar semáforo
     actualizarSemaforoMobile('verde');
     
-    // Cargar datos iniciales - PRIMERO datos REALES
-    cargarDatosReales().then(exito => {
-        if (!exito) {
-            simularDatosReales();  // Fallback si fallan los datos reales
-        }
-    });
-    cargarDatosSatelitales();
+    // Cargar datos iniciales
+    actualizarDatos();
     
-    // Actualizar cada 5 minutos (datos reales)
-    setInterval(() => {
-        cargarDatosReales().then(exito => {
-            if (!exito) {
-                simularDatosReales();
-            }
-        });
-    }, 300000);  // 5 minutos
-    
-    // Actualizar datos satelitales cada minuto
-    setInterval(() => monitorSatelital.cargarDatosSatelitales(), 60000);
+    // Actualizar cada 10 minutos
+    setInterval(actualizarDatos, 600000);
     
     // Prevenir zoom no deseado
     document.addEventListener('touchstart', function(e) {
