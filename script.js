@@ -15,6 +15,107 @@ const config = {
 // Estado inicial
 let estadoActual = 'verde';
 
+// ===== DATOS METEOROLÓGICOS REALES =====
+async function cargarDatosReales() {
+    try {
+        console.log('🌤️ Cargando datos reales...');
+        
+        // API gratuita para Luján (-34.57, -59.10)
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.57&longitude=-59.10&current=temperature_2m,wind_speed_10m,wind_direction_10m,relative_humidity_2m,surface_pressure,is_day&wind_speed_unit=km_h&timezone=America%2FSao_Paulo');
+        
+        if (!response.ok) throw new Error('Error en la API');
+        
+        const data = await response.json();
+        const current = data.current;
+        
+        console.log('Datos reales recibidos:', current);
+
+        // Actualizar interfaz con datos REALES
+        document.getElementById('viento-velocidad-mobile').textContent = 
+            `${Math.round(current.wind_speed_10m)} km/h`;
+        document.getElementById('viento-direccion-mobile').textContent = 
+            gradosADireccion(current.wind_direction_10m);
+        document.getElementById('temperatura-mobile').textContent = 
+            `${Math.round(current.temperature_2m)}°C`;
+        document.getElementById('humedad-mobile').textContent = 
+            `${Math.round(current.relative_humidity_2m)}%`;
+        document.getElementById('presion-mobile').textContent = 
+            `${Math.round(current.surface_pressure)} hPa`;
+
+        // Actualizar estados y semáforo con datos REALES
+        actualizarEstadosVariablesReales(current);
+        actualizarSemaforoConDatosReales(current);
+        
+        // Feedback visual
+        mostrarMensaje('✅ Datos actualizados', 'success');
+        return true;
+        
+    } catch (error) {
+        console.error('Error cargando datos reales:', error);
+        // Fallback a datos simulados
+        simularDatosReales();
+        mostrarMensaje('⚠️ Usando datos simulados', 'warning');
+        return false;
+    }
+}
+
+function gradosADireccion(grados) {
+    const direcciones = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+    return direcciones[Math.round(grados / 45) % 8];
+}
+
+function actualizarEstadosVariablesReales(datos) {
+    // Estado de velocidad de viento
+    let estadoViento = 'Normal';
+    if (datos.wind_speed_10m > 25) estadoViento = '🚨 Fuerte';
+    else if (datos.wind_speed_10m > 15) estadoViento = '⚠️ Moderado';
+    document.getElementById('estado-viento-mobile').textContent = estadoViento;
+
+    // Estado de temperatura
+    let estadoTemp = 'Normal';
+    if (datos.temperature_2m > 35) estadoTemp = '🚨 Alta';
+    else if (datos.temperature_2m > 30) estadoTemp = '⚠️ Elevada';
+    document.getElementById('estado-temp-mobile').textContent = estadoTemp;
+
+    // Estado de humedad
+    let estadoHumedad = 'Normal';
+    if (datos.relative_humidity_2m < 30) estadoHumedad = '⚠️ Baja';
+    else if (datos.relative_humidity_2m > 80) estadoHumedad = '⚠️ Alta';
+    document.getElementById('estado-humedad-mobile').textContent = estadoHumedad;
+
+    // Estado de presión
+    let estadoPresion = 'Estable';
+    if (datos.surface_pressure < 1000 || datos.surface_pressure > 1020) estadoPresion = '⚠️ Variable';
+    document.getElementById('estado-presion-mobile').textContent = estadoPresion;
+}
+
+function actualizarSemaforoConDatosReales(datos) {
+    const direccion = gradosADireccion(datos.wind_direction_10m);
+    const velocidad = datos.wind_speed_10m;
+    
+    let nivel = 'verde';
+    
+    // Lógica de riesgo con datos REALES (usa tu configuración existente)
+    nivel = config.direccionesRiesgo[direccion].nivel;
+    
+    // Velocidad empeora el escenario (misma lógica que tenías)
+    if (velocidad > 30 && (nivel === 'naranja' || nivel === 'roja')) {
+        nivel = 'negra';
+    } else if (velocidad > 20 && nivel === 'roja') {
+        nivel = 'negra';
+    } else if (velocidad > 25) {
+        if (nivel === 'verde') nivel = 'amarilla';
+        else if (nivel === 'amarilla') nivel = 'naranja';
+    }
+    
+    actualizarSemaforoMobile(nivel);
+}
+
+function mostrarMensaje(texto, tipo) {
+    console.log(`[${tipo}] ${texto}`);
+    // Podés agregar un toast notification aquí después
+}
+
 // ===== SISTEMA DE SEMÁFORO =====
 function actualizarSemaforoMobile(nivel) {
     // Apagar todas las luces
@@ -64,7 +165,7 @@ function obtenerDescripcionEstadoMobile(nivel) {
     return descripciones[nivel] || '';
 }
 
-// ===== SISTEMA DE DATOS METEOROLÓGICOS =====
+// ===== SISTEMA DE DATOS METEOROLÓGICOS (SIMULADOS COMO FALLBACK) =====
 function simularDatosReales() {
     // Velocidad de viento aleatoria
     const velocidad = 10 + Math.random() * 35;
@@ -327,8 +428,11 @@ function mostrarCamaras() {
 }
 
 // ===== FUNCIONES GLOBALES =====
-function actualizarDatos() {
-    simularDatosReales();
+async function actualizarDatos() {
+    const exito = await cargarDatosReales();  // ← Usar datos REALES primero
+    if (!exito) {
+        simularDatosReales();  // ← Fallback a simulados si falla
+    }
     cargarDatosSatelitales();
     
     // Feedback visual
@@ -365,12 +469,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar semáforo
     actualizarSemaforoMobile('verde');
     
-    // Cargar datos iniciales
-    simularDatosReales();
+    // Cargar datos iniciales - PRIMERO datos REALES
+    cargarDatosReales().then(exito => {
+        if (!exito) {
+            simularDatosReales();  // Fallback si fallan los datos reales
+        }
+    });
     cargarDatosSatelitales();
     
-    // Actualizar cada 30 segundos
-    setInterval(simularDatosReales, 30000);
+    // Actualizar cada 5 minutos (datos reales)
+    setInterval(() => {
+        cargarDatosReales().then(exito => {
+            if (!exito) {
+                simularDatosReales();
+            }
+        });
+    }, 300000);  // 5 minutos
+    
+    // Actualizar datos satelitales cada minuto
     setInterval(() => monitorSatelital.cargarDatosSatelitales(), 60000);
     
     // Prevenir zoom no deseado
