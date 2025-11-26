@@ -24,6 +24,107 @@ const config = {
 // Estado inicial
 let estadoActual = 'verde';
 
+// ===== FUNCIONES AUXILIARES =====
+function gradosADireccion(grados) {
+    if (grados === undefined || grados === null) return '--';
+    
+    const direcciones = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+    const index = Math.round((grados % 360) / 45) % 8;
+    return direcciones[index];
+}
+
+function esVientoNortePeligroso(grados) {
+    if (grados === undefined || grados === null) return false;
+    
+    const gradosNormalizados = (grados + 360) % 360;
+    return (gradosNormalizados >= 300 || gradosNormalizados <= 45);
+}
+
+function calcularNivelRiesgo(datos) {
+    if (!datos) return 'verde';
+    
+    const vientoDireccion = gradosADireccion(datos.wind_direction_10m);
+    const vientoVelocidad = datos.wind_speed_10m || 0;
+    const temperatura = datos.temperature_2m || 0;
+    const presion = datos.surface_pressure || 1013;
+    
+    let nivelBase = 'verde';
+    
+    // FACTOR 1: VIENTO NORTE (principal)
+    if (esVientoNortePeligroso(datos.wind_direction_10m)) {
+        if (vientoVelocidad > config.umbrales.vientoAlerta) {
+            nivelBase = config.direccionesRiesgo[vientoDireccion]?.nivel || 'roja';
+            
+            // Viento fuerte empeora la situación
+            if (vientoVelocidad > config.umbrales.vientoExtremo) {
+                if (nivelBase === 'roja') nivelBase = 'negra';
+                else if (nivelBase === 'naranja') nivelBase = 'roja';
+            }
+        }
+    }
+    
+    // FACTOR 2: TEMPERATURA ALTA
+    if (temperatura > config.umbrales.temperaturaAlta) {
+        if (nivelBase === 'verde') nivelBase = 'amarilla';
+        else if (nivelBase === 'amarilla') nivelBase = 'naranja';
+        else if (nivelBase === 'naranja') nivelBase = 'roja';
+    }
+    
+    // FACTOR 3: PRESIÓN BAJA
+    if (presion < config.umbrales.presionBaja) {
+        if (nivelBase === 'verde') nivelBase = 'amarilla';
+        else if (nivelBase === 'amarilla') nivelBase = 'naranja';
+    }
+    
+    return nivelBase;
+}
+
+function actualizarEstadosVariablesReales(datos) {
+    if (!datos) return;
+    
+    const vientoDireccion = gradosADireccion(datos.wind_direction_10m);
+    
+    // Estado de viento
+    let estadoViento = '✅ Normal';
+    if (esVientoNortePeligroso(datos.wind_direction_10m) && datos.wind_speed_10m > config.umbrales.vientoAlerta) {
+        estadoViento = '🚨 Norte Peligroso';
+    } else if (datos.wind_speed_10m > config.umbrales.vientoExtremo) {
+        estadoViento = '⚠️ Muy Fuerte';
+    } else if (datos.wind_speed_10m > config.umbrales.vientoAlerta) {
+        estadoViento = '⚠️ Fuerte';
+    }
+    document.getElementById('estado-viento-mobile').textContent = estadoViento;
+
+    // Estado de temperatura
+    let estadoTemp = '✅ Normal';
+    if (datos.temperature_2m > config.umbrales.temperaturaAlta) {
+        estadoTemp = '🔥 Alta';
+    } else if (datos.temperature_2m > 25) {
+        estadoTemp = '⚠️ Elevada';
+    }
+    document.getElementById('estado-temp-mobile').textContent = estadoTemp;
+
+    // Estado de humedad
+    let estadoHumedad = '✅ Normal';
+    if (datos.relative_humidity_2m < 30) {
+        estadoHumedad = '🌵 Muy Baja';
+    } else if (datos.relative_humidity_2m < 40) {
+        estadoHumedad = '⚠️ Baja';
+    }
+    document.getElementById('estado-humedad-mobile').textContent = estadoHumedad;
+
+    // Estado de presión
+    let estadoPresion = '✅ Estable';
+    if (datos.surface_pressure < config.umbrales.presionBaja) {
+        estadoPresion = '📉 Baja';
+    }
+    document.getElementById('estado-presion-mobile').textContent = estadoPresion;
+}
+
+function mostrarMensaje(texto, tipo) {
+    console.log(`[${tipo}] ${texto}`);
+}
+
 // ===== DATOS METEOROLÓGICOS REALES =====
 async function cargarDatosReales() {
     try {
@@ -55,7 +156,8 @@ async function cargarDatosReales() {
         actualizarEstadosVariablesReales(current);
         
         // Calcular nivel de alerta
-        actualizarSemaforoConDatosReales(current);
+        const nivel = calcularNivelRiesgo(current);
+        actualizarSemaforoMobile(nivel);
         
         mostrarMensaje('✅ Datos meteorológicos actualizados', 'success');
         return true;
@@ -250,102 +352,6 @@ class MonitorAmbiental {
         };
         return textos[riesgo] || 'Desconocido';
     }
-}
-
-// ===== FUNCIONES AUXILIARES =====
-function gradosADireccion(grados) {
-    const direcciones = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
-    return direcciones[Math.round((grados % 360) / 45) % 8];
-}
-
-function esVientoNortePeligroso(grados) {
-    const gradosNormalizados = (grados + 360) % 360;
-    return (gradosNormalizados >= 300 || gradosNormalizados <= 45);
-}
-
-function calcularNivelRiesgo(datos) {
-    const vientoDireccion = gradosADireccion(datos.wind_direction_10m);
-    const vientoVelocidad = datos.wind_speed_10m;
-    const temperatura = datos.temperature_2m;
-    const presion = datos.surface_pressure;
-    
-    let nivelBase = 'verde';
-    
-    // FACTOR 1: VIENTO NORTE (principal)
-    if (esVientoNortePeligroso(datos.wind_direction_10m)) {
-        if (vientoVelocidad > config.umbrales.vientoAlerta) {
-            nivelBase = config.direccionesRiesgo[vientoDireccion].nivel;
-            
-            if (vientoVelocidad > config.umbrales.vientoExtremo) {
-                if (nivelBase === 'roja') nivelBase = 'negra';
-                else if (nivelBase === 'naranja') nivelBase = 'roja';
-            }
-        }
-    }
-    
-    // FACTOR 2: TEMPERATURA ALTA
-    if (temperatura > config.umbrales.temperaturaAlta) {
-        if (nivelBase === 'verde') nivelBase = 'amarilla';
-        else if (nivelBase === 'amarilla') nivelBase = 'naranja';
-        else if (nivelBase === 'naranja') nivelBase = 'roja';
-    }
-    
-    // FACTOR 3: PRESIÓN BAJA
-    if (presion < config.umbrales.presionBaja) {
-        if (nivelBase === 'verde') nivelBase = 'amarilla';
-        else if (nivelBase === 'amarilla') nivelBase = 'naranja';
-    }
-    
-    return nivelBase;
-}
-
-function actualizarEstadosVariablesReales(datos) {
-    const vientoDireccion = gradosADireccion(datos.wind_direction_10m);
-    
-    // Estado de viento
-    let estadoViento = '✅ Normal';
-    if (esVientoNortePeligroso(datos.wind_direction_10m) && datos.wind_speed_10m > config.umbrales.vientoAlerta) {
-        estadoViento = '🚨 Norte Peligroso';
-    } else if (datos.wind_speed_10m > config.umbrales.vientoExtremo) {
-        estadoViento = '⚠️ Muy Fuerte';
-    } else if (datos.wind_speed_10m > config.umbrales.vientoAlerta) {
-        estadoViento = '⚠️ Fuerte';
-    }
-    document.getElementById('estado-viento-mobile').textContent = estadoViento;
-
-    // Estado de temperatura
-    let estadoTemp = '✅ Normal';
-    if (datos.temperature_2m > config.umbrales.temperaturaAlta) {
-        estadoTemp = '🔥 Alta';
-    } else if (datos.temperature_2m > 25) {
-        estadoTemp = '⚠️ Elevada';
-    }
-    document.getElementById('estado-temp-mobile').textContent = estadoTemp;
-
-    // Estado de humedad
-    let estadoHumedad = '✅ Normal';
-    if (datos.relative_humidity_2m < 30) {
-        estadoHumedad = '🌵 Muy Baja';
-    } else if (datos.relative_humidity_2m < 40) {
-        estadoHumedad = '⚠️ Baja';
-    }
-    document.getElementById('estado-humedad-mobile').textContent = estadoHumedad;
-
-    // Estado de presión
-    let estadoPresion = '✅ Estable';
-    if (datos.surface_pressure < config.umbrales.presionBaja) {
-        estadoPresion = '📉 Baja';
-    }
-    document.getElementById('estado-presion-mobile').textContent = estadoPresion;
-}
-
-function actualizarSemaforoConDatosReales(datos) {
-    const nivel = calcularNivelRiesgo(datos);
-    actualizarSemaforoMobile(nivel);
-}
-
-function mostrarMensaje(texto, tipo) {
-    console.log(`[${tipo}] ${texto}`);
 }
 
 // ===== SISTEMA DE SEMÁFORO =====
