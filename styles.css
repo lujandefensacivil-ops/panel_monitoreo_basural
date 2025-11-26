@@ -14,7 +14,6 @@
 
 .btn-toggle-pronostico:hover {
     background: #2980b9;
-    transform: translateY(-1px);
 }
 
 .btn-toggle-pronostico:active {
@@ -169,7 +168,7 @@
     border: 1px solid #fadbd8;
 }
 
-/* Mejoras responsive para móviles */
+/* Mejoras responsive */
 @media (max-width: 768px) {
     .section-header {
         flex-direction: column;
@@ -192,51 +191,9 @@
     .item-pronostico {
         padding: 12px;
     }
-    
-    .hora-pronostico {
-        font-size: 13px;
-    }
-    
-    .datos-pronostico {
-        grid-template-columns: 1fr 1fr;
-        gap: 6px;
-        font-size: 11px;
-    }
 }
 
-@media (max-width: 480px) {
-    .panel-pronostico-integrado {
-        padding: 15px;
-        margin-top: 12px;
-    }
-    
-    .pronostico-header h4 {
-        font-size: 1em;
-    }
-    
-    .grid-pronostico {
-        gap: 8px;
-    }
-    
-    .item-pronostico {
-        padding: 10px;
-    }
-}
-
-/* Efectos hover para desktop */
-@media (hover: hover) {
-    .item-pronostico:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    
-    .btn-toggle-pronostico:hover {
-        background: #2980b9;
-        transform: translateY(-1px);
-    }
-}
-
-/* Scroll suave para el contenido del pronóstico */
+/* Scroll suave */
 .pronostico-integrado-content {
     max-height: 400px;
     overflow-y: auto;
@@ -256,31 +213,4 @@
 .pronostico-integrado-content::-webkit-scrollbar-thumb {
     background: #3498db;
     border-radius: 3px;
-}
-
-.pronostico-integrado-content::-webkit-scrollbar-thumb:hover {
-    background: #2980b9;
-}
-
-/* Indicador visual cuando hay riesgo */
-.item-pronostico.riesgo .hora-pronostico {
-    color: #e74c3c;
-}
-
-.item-pronostico.alerta .hora-pronostico {
-    color: #f39c12;
-}
-
-/* Mejora para la sección meteorológica con pronóstico */
-.meteo-section {
-    position: relative;
-}
-
-.meteo-section .section-header {
-    position: sticky;
-    top: 0;
-    background: white;
-    z-index: 10;
-    padding: 5px 0;
-    margin-bottom: 15px;
 }
