@@ -1,453 +1,286 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    color: #333;
-    min-height: 100vh;
-    overflow-x: hidden;
-    padding-bottom: env(safe-area-inset-bottom);
-}
-
-.container {
-    max-width: 100%;
-    margin: 0 auto;
-    padding: 15px;
-    padding-bottom: 80px;
-}
-
-/* HEADER MÓVIL */
-.mobile-header {
-    text-align: center;
-    margin-bottom: 20px;
-    color: white;
-    padding: 15px 0;
-}
-
-.mobile-header h1 {
-    font-size: 1.8em;
-    margin-bottom: 5px;
-    font-weight: 700;
-}
-
-.last-update {
-    font-size: 0.9em;
-    opacity: 0.8;
-}
-
-/* SEMÁFORO MÓVIL */
-.semaforo-mobile {
-    background: white;
-    border-radius: 20px;
-    padding: 25px 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    text-align: center;
-}
-
-.semaforo-container-mobile {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 20px;
-}
-
-.luz-mobile {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    opacity: 0.3;
-    transition: all 0.3s ease;
-    border: 3px solid transparent;
-}
-
-.luz-mobile.activa {
-    opacity: 1;
-    box-shadow: 0 0 20px currentColor;
-    border-color: white;
-    transform: scale(1.1);
-}
-
-.verde { background: #2ecc71; }
-.amarilla { background: #f1c40f; }
-.naranja { background: #e67e22; }
-.roja { background: #e74c3c; }
-.negra { background: #2c3e50; border: 3px solid #34495e; }
-
-.estado-mobile h2 {
-    font-size: 1.8em;
-    margin-bottom: 8px;
-    font-weight: 800;
-}
-
-.estado-verde { color: #2ecc71; }
-.estado-amarilla { color: #f1c40f; }
-.estado-naranja { color: #e67e22; }
-.estado-roja { color: #e74c3c; }
-.estado-negra { color: #2c3e50; }
-
-.estado-mobile p {
-    color: #666;
-    font-size: 1em;
-}
-
-/* BOTONES RÁPIDOS */
-.quick-actions {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.quick-btn {
-    background: rgba(255,255,255,0.9);
-    border: none;
-    border-radius: 15px;
-    padding: 15px 10px;
-    font-size: 0.85em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    min-height: 70px;
-}
-
-.quick-btn:active {
-    transform: scale(0.95);
-    background: white;
-}
-
-.quick-btn .icon {
-    font-size: 1.5em;
-}
-
-/* SECCIONES */
-.seccion {
-    background: white;
-    border-radius: 20px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.section-header h2 {
-    font-size: 1.3em;
-    color: #2c3e50;
-}
-
-.section-badge {
-    background: #ecf0f1;
-    padding: 5px 12px;
-    border-radius: 15px;
-    font-size: 0.8em;
-    font-weight: 600;
-}
-
-/* VARIABLES METEOROLÓGICAS */
-.variables-scroll {
-    display: flex;
-    gap: 15px;
-    overflow-x: auto;
-    padding: 10px 5px;
-    margin: 0 -5px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.variables-scroll::-webkit-scrollbar {
-    display: none;
-}
-
-.variable-card-mobile {
-    min-width: 150px;
-    background: #f8f9fa;
-    padding: 15px;
-    border-radius: 15px;
-    border-left: 4px solid #3498db;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-}
-
-.var-icon {
-    font-size: 1.5em;
-}
-
-.var-content {
-    flex: 1;
-}
-
-.var-name {
-    font-size: 0.8em;
-    color: #7f8c8d;
-    margin-bottom: 4px;
-}
-
-.var-value {
-    font-size: 1.2em;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 2px;
-}
-
-.var-direction, .var-detail {
-    font-size: 0.75em;
-    color: #95a5a6;
-}
-
-.var-status {
-    font-size: 1.2em;
-}
-
-/* SATÉLITE CARDS */
-.satelite-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.satelite-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-.satelite-card.alerta {
-    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
-}
-
-.satelite-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.satelite-icon {
-    font-size: 1.5em;
-}
-
-.satelite-header h3 {
-    margin: 0;
-    font-size: 1.1em;
-    font-weight: 600;
-}
-
-.satelite-value {
-    font-size: 2em;
-    font-weight: 800;
-    margin-bottom: 5px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-}
-
-.satelite-source {
-    font-size: 0.8em;
-    opacity: 0.9;
-    margin-bottom: 10px;
-}
-
-.satelite-status {
-    font-size: 0.9em;
-    font-weight: 600;
-    padding: 5px 10px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 10px;
-    display: inline-block;
-}
-
-.btn-satelite {
+/* ===== SISTEMA DE PRONÓSTICO INTEGRADO ===== */
+.btn-toggle-pronostico {
     background: #3498db;
     color: white;
     border: none;
-    padding: 15px 25px;
-    border-radius: 25px;
-    font-weight: 600;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 12px;
     cursor: pointer;
-    width: 100%;
-    font-size: 1.1em;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-.btn-satelite:active {
+.btn-toggle-pronostico:hover {
     background: #2980b9;
-    transform: scale(0.98);
+    transform: translateY(-1px);
 }
 
-/* CÁMARAS - TABS */
-.camaras-tabs {
+.btn-toggle-pronostico:active {
+    transform: scale(0.95);
+}
+
+.panel-pronostico-integrado {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 15px;
+    border: 2px solid #e9ecef;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
+        max-height: 0;
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+        max-height: 500px;
+    }
+}
+
+.pronostico-header h4 {
+    margin: 0 0 5px 0;
+    color: #2c3e50;
+    font-size: 1.1em;
+}
+
+.pronostico-header small {
+    color: #7f8c8d;
+    font-size: 11px;
+}
+
+.pronostico-integrado-content {
     margin-top: 15px;
 }
 
-.tab-buttons {
+/* Grid de pronóstico */
+.grid-pronostico {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 5px;
-    margin-bottom: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
 }
 
-.tab-btn {
-    background: #ecf0f1;
-    border: none;
-    padding: 12px 8px;
-    border-radius: 10px;
-    font-size: 0.8em;
-    font-weight: 600;
-    cursor: pointer;
+.item-pronostico {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    border-left: 4px solid #3498db;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     transition: all 0.3s ease;
 }
 
-.tab-btn.active {
-    background: #3498db;
-    color: white;
+.item-pronostico:active {
+    transform: scale(0.98);
 }
 
-.tab-pane {
-    display: none;
+.item-pronostico.riesgo {
+    border-left-color: #e74c3c;
+    background: linear-gradient(135deg, #ffeaea 0%, #ffd1d1 100%);
 }
 
-.tab-pane.active {
-    display: block;
+.item-pronostico.alerta {
+    border-left-color: #f39c12;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa4 100%);
 }
 
-.camara-preview {
-    text-align: center;
-}
-
-.camara-img {
-    width: 100%;
-    max-width: 400px;
-    border-radius: 10px;
-    margin-bottom: 15px;
-}
-
-.camara-info h3 {
-    margin-bottom: 5px;
+.hora-pronostico {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 8px;
     color: #2c3e50;
-}
-
-.camara-info p {
-    color: #7f8c8d;
-    margin-bottom: 15px;
-    font-size: 0.9em;
-}
-
-.btn-ver-camara {
-    background: #27ae60;
-    color: white;
-    border: none;
-    padding: 12px 25px;
-    border-radius: 25px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    width: 100%;
-    max-width: 200px;
-}
-
-.btn-ver-camara:active {
-    background: #219a52;
-}
-
-/* FOOTER MÓVIL */
-.mobile-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(44, 62, 80, 0.95);
-    color: white;
-    padding: 15px 20px;
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.footer-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.9em;
 }
 
-/* ESTADOS DE RIESGO */
-.riesgo-alto { background: rgba(231, 76, 60, 0.3) !important; }
-.riesgo-medio { background: rgba(243, 156, 18, 0.3) !important; }
-.riesgo-bajo { background: rgba(46, 204, 113, 0.3) !important; }
-
-.calidad-mala { background: rgba(231, 76, 60, 0.3) !important; }
-.calidad-moderada { background: rgba(243, 156, 18, 0.3) !important; }
-.calidad-buena { background: rgba(46, 204, 113, 0.3) !important; }
-
-.salud-alta { background: rgba(46, 204, 113, 0.3) !important; }
-.salud-media { background: rgba(243, 156, 18, 0.3) !important; }
-.salud-baja { background: rgba(231, 76, 60, 0.3) !important; }
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+.datos-pronostico {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 12px;
 }
 
-.alerta-activa {
-    animation: pulse 1.5s infinite;
-    background: rgba(231, 76, 60, 0.5) !important;
+.dato-pronostico {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #5d6d7e;
 }
 
-/* MEJORAS TÁCTILES PARA MÓVIL */
+.dato-pronostico:first-child {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+.dato-pronostico:nth-child(2) {
+    color: #3498db;
+    font-weight: 600;
+}
+
+.riesgo-badge {
+    background: #e74c3c;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    margin-top: 8px;
+    display: inline-block;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dia-pronostico {
+    margin-bottom: 20px;
+}
+
+.dia-pronostico:last-child {
+    margin-bottom: 0;
+}
+
+.dia-pronostico h5 {
+    color: #2c3e50;
+    margin-bottom: 12px;
+    font-size: 1em;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #ecf0f1;
+}
+
+/* Estados de carga y error */
+.loading {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 20px;
+    font-style: italic;
+}
+
+.error {
+    text-align: center;
+    color: #e74c3c;
+    padding: 20px;
+    background: #ffeaea;
+    border-radius: 10px;
+    border: 1px solid #fadbd8;
+}
+
+/* Mejoras responsive para móviles */
 @media (max-width: 768px) {
-    .container {
-        padding: 10px;
-        padding-bottom: 70px;
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
     }
     
-    .variable-card-mobile {
-        min-width: 140px;
+    .btn-toggle-pronostico {
+        align-self: stretch;
+        text-align: center;
+        padding: 10px 15px;
+        font-size: 13px;
+    }
+    
+    .grid-pronostico {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .item-pronostico {
         padding: 12px;
     }
     
-    .quick-btn {
-        min-height: 60px;
-        padding: 12px 8px;
-        font-size: 0.8em;
+    .hora-pronostico {
+        font-size: 13px;
     }
     
-    .tab-btn {
-        padding: 10px 5px;
-        font-size: 0.75em;
-    }
-    
-    .satelite-grid {
-        grid-template-columns: 1fr;
+    .datos-pronostico {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        font-size: 11px;
     }
 }
 
-/* SOPORTE PARA NOTCH Y AREAS SEGURAS */
-@supports(padding: max(0px)) {
-    .container {
-        padding-left: max(15px, env(safe-area-inset-left));
-        padding-right: max(15px, env(safe-area-inset-right));
+@media (max-width: 480px) {
+    .panel-pronostico-integrado {
+        padding: 15px;
+        margin-top: 12px;
     }
     
-    .mobile-footer {
-        padding-bottom: max(15px, env(safe-area-inset-bottom));
+    .pronostico-header h4 {
+        font-size: 1em;
     }
+    
+    .grid-pronostico {
+        gap: 8px;
+    }
+    
+    .item-pronostico {
+        padding: 10px;
+    }
+}
+
+/* Efectos hover para desktop */
+@media (hover: hover) {
+    .item-pronostico:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .btn-toggle-pronostico:hover {
+        background: #2980b9;
+        transform: translateY(-1px);
+    }
+}
+
+/* Scroll suave para el contenido del pronóstico */
+.pronostico-integrado-content {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #3498db #ecf0f1;
+}
+
+.pronostico-integrado-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.pronostico-integrado-content::-webkit-scrollbar-track {
+    background: #ecf0f1;
+    border-radius: 3px;
+}
+
+.pronostico-integrado-content::-webkit-scrollbar-thumb {
+    background: #3498db;
+    border-radius: 3px;
+}
+
+.pronostico-integrado-content::-webkit-scrollbar-thumb:hover {
+    background: #2980b9;
+}
+
+/* Indicador visual cuando hay riesgo */
+.item-pronostico.riesgo .hora-pronostico {
+    color: #e74c3c;
+}
+
+.item-pronostico.alerta .hora-pronostico {
+    color: #f39c12;
+}
+
+/* Mejora para la sección meteorológica con pronóstico */
+.meteo-section {
+    position: relative;
+}
+
+.meteo-section .section-header {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    padding: 5px 0;
+    margin-bottom: 15px;
 }
