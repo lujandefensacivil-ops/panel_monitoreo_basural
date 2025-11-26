@@ -24,15 +24,15 @@ const config = {
     apis: {
         openMeteo: 'https://api.open-meteo.com/v1/forecast',
         airQuality: 'https://air-quality-api.open-meteo.com/v1/air-quality',
-        // Removemos OpenWeatherMap que requiere API key
     }
 };
 
 // Estado inicial
 let estadoActual = 'verde';
 let ubicacionActual = { lat: -34.57, lon: -59.10 }; // Coordenadas por defecto
+let pronosticoVisible = false;
 
-// ===== FUNCIONES AUXILIARES (MANTENER IGUAL) =====
+// ===== FUNCIONES AUXILIARES =====
 function gradosADireccion(grados) {
     if (grados === undefined || grados === null) return '--';
     const direcciones = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
@@ -82,6 +82,169 @@ function calcularNivelRiesgo(datos) {
     }
     
     return nivelBase;
+}
+
+function actualizarEstadosVariablesReales(datos) {
+    if (!datos) return;
+    
+    const vientoDireccion = gradosADireccion(datos.wind_direction_10m);
+    
+    // Estado de viento
+    let estadoViento = '✅ Normal';
+    if (esVientoNortePeligroso(datos.wind_direction_10m) && datos.wind_speed_10m > config.umbrales.vientoAlerta) {
+        estadoViento = '🚨 Norte Peligroso';
+    } else if (datos.wind_speed_10m > config.umbrales.vientoExtremo) {
+        estadoViento = '⚠️ Muy Fuerte';
+    } else if (datos.wind_speed_10m > config.umbrales.vientoAlerta) {
+        estadoViento = '⚠️ Fuerte';
+    }
+    document.getElementById('estado-viento-mobile').textContent = estadoViento;
+
+    // Estado de temperatura
+    let estadoTemp = '✅ Normal';
+    if (datos.temperature_2m > config.umbrales.temperaturaAlta) {
+        estadoTemp = '🔥 Alta';
+    } else if (datos.temperature_2m > 25) {
+        estadoTemp = '⚠️ Elevada';
+    }
+    document.getElementById('estado-temp-mobile').textContent = estadoTemp;
+
+    // Estado de humedad
+    let estadoHumedad = '✅ Normal';
+    if (datos.relative_humidity_2m < 30) {
+        estadoHumedad = '🌵 Muy Baja';
+    } else if (datos.relative_humidity_2m < 40) {
+        estadoHumedad = '⚠️ Baja';
+    }
+    document.getElementById('estado-humedad-mobile').textContent = estadoHumedad;
+
+    // Estado de presión
+    let estadoPresion = '✅ Estable';
+    if (datos.surface_pressure < config.umbrales.presionBaja) {
+        estadoPresion = '📉 Baja';
+    }
+    document.getElementById('estado-presion-mobile').textContent = estadoPresion;
+}
+
+function mostrarMensaje(texto, tipo) {
+    console.log(`[${tipo}] ${texto}`);
+}
+
+// ===== SISTEMA DE PRONÓSTICO INTEGRADO =====
+function togglePronostico() {
+    const panel = document.getElementById('panel-pronostico-integrado');
+    const boton = event.target;
+    
+    if (!pronosticoVisible) {
+        // Mostrar y cargar pronóstico
+        panel.style.display = 'block';
+        boton.textContent = '📅 Ocultar Pronóstico';
+        cargarPronosticoIntegrado();
+        pronosticoVisible = true;
+    } else {
+        // Ocultar pronóstico
+        panel.style.display = 'none';
+        boton.textContent = '📅 Ver Pronóstico 48hs';
+        pronosticoVisible = false;
+    }
+}
+
+async function cargarPronosticoIntegrado() {
+    try {
+        const contenido = document.getElementById('contenido-pronostico-integrado');
+        contenido.innerHTML = '<div class="loading">🔄 Cargando pronóstico...</div>';
+        
+        const response = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${ubicacionActual.lat}&longitude=${ubicacionActual.lon}&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m&forecast_days=3&timezone=America%2FSao_Paulo`
+        );
+        
+        if (!response.ok) throw new Error('Error en pronóstico');
+        
+        const data = await response.json();
+        mostrarPronosticoIntegrado(data);
+        
+    } catch (error) {
+        console.error('Error cargando pronóstico:', error);
+        document.getElementById('contenido-pronostico-integrado').innerHTML = 
+            '<div class="error">❌ Error cargando pronóstico</div>';
+    }
+}
+
+function mostrarPronosticoIntegrado(data) {
+    const contenido = document.getElementById('contenido-pronostico-integrado');
+    const horas = data.hourly.time;
+    
+    // Agrupar por días para mejor visualización
+    const pronosticoPorDia = {};
+    
+    horas.forEach((hora, index) => {
+        if (index >= 48) return; // Solo 48 horas
+        
+        const fecha = new Date(hora);
+        const diaKey = fecha.toLocaleDateString('es-AR');
+        const horaStr = fecha.toLocaleTimeString('es-AR', { hour: '2-digit' });
+        
+        if (!pronosticoPorDia[diaKey]) {
+            pronosticoPorDia[diaKey] = [];
+        }
+        
+        const temp = data.hourly.temperature_2m[index];
+        const vientoVel = data.hourly.wind_speed_10m[index];
+        const vientoDir = data.hourly.wind_direction_10m[index];
+        const humedad = data.hourly.relative_humidity_2m[index];
+        
+        const direccionViento = gradosADireccion(vientoDir);
+        const esRiesgoso = esVientoNortePeligroso(vientoDir) && vientoVel > config.umbrales.vientoAlerta;
+        const esAlerta = esVientoNortePeligroso(vientoDir);
+        
+        pronosticoPorDia[diaKey].push({
+            hora: horaStr,
+            temp,
+            vientoVel,
+            vientoDir: direccionViento,
+            humedad,
+            esRiesgoso,
+            esAlerta
+        });
+    });
+    
+    let html = '';
+    
+    Object.keys(pronosticoPorDia).forEach(dia => {
+        const datosDia = pronosticoPorDia[dia];
+        const fecha = new Date(dia);
+        const diaSemana = fecha.toLocaleDateString('es-AR', { weekday: 'long' });
+        
+        html += `<div class="dia-pronostico">
+                    <h5>${diaSemana} (${dia})</h5>
+                    <div class="grid-pronostico">`;
+        
+        // Mostrar solo horas clave: 6am, 12pm, 6pm, 12am o las que tengan riesgo
+        const horasClave = datosDia.filter((dato, index) => 
+            index % 6 === 0 || dato.esRiesgoso // Cada 6 horas o si hay riesgo
+        ).slice(0, 8); // Máximo 8 items por día
+        
+        horasClave.forEach(dato => {
+            const claseRiesgo = dato.esRiesgoso ? 'riesgo' : dato.esAlerta ? 'alerta' : '';
+            
+            html += `
+                <div class="item-pronostico ${claseRiesgo}">
+                    <div class="hora-pronostico">${dato.hora}hs</div>
+                    <div class="datos-pronostico">
+                        <div class="dato-pronostico">🌡️ ${dato.temp}°C</div>
+                        <div class="dato-pronostico">🌬️ ${dato.vientoVel} km/h</div>
+                        <div class="dato-pronostico">💧 ${dato.humedad}%</div>
+                        <div class="dato-pronostico">🧭 ${dato.vientoDir}</div>
+                    </div>
+                    ${dato.esRiesgoso ? '<div class="riesgo-badge">RIESGO HUMO</div>' : ''}
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    contenido.innerHTML = html;
 }
 
 // ===== SISTEMA DE DATOS METEOROLÓGICOS CORREGIDO =====
@@ -315,10 +478,68 @@ class MonitorAmbiental {
     }
 }
 
-// ===== SISTEMA DE CÁMARAS MEJORADO =====
+// ===== SISTEMA DE SEMÁFORO =====
+function actualizarSemaforoMobile(nivel) {
+    document.querySelectorAll('.luz-mobile').forEach(luz => {
+        luz.classList.remove('activa', 'alerta-activa');
+    });
+    
+    const luzActiva = document.getElementById(`luz-${nivel}-mobile`);
+    luzActiva.classList.add('activa');
+    
+    if (nivel !== 'verde') {
+        luzActiva.classList.add('alerta-activa');
+    }
+    
+    const textoEstado = document.getElementById('texto-estado-mobile');
+    const descripcionEstado = document.getElementById('descripcion-estado-mobile');
+    
+    textoEstado.textContent = obtenerTextoEstadoMobile(nivel);
+    textoEstado.className = `estado-${nivel}`;
+    descripcionEstado.textContent = obtenerDescripcionEstado(nivel);
+    
+    estadoActual = nivel;
+    actualizarTimestamp();
+}
+
+function obtenerTextoEstadoMobile(nivel) {
+    const estados = {
+        'verde': 'NORMAL',
+        'amarilla': 'PRECAUCIÓN', 
+        'naranja': 'ALERTA',
+        'roja': 'ALTA ALERTA',
+        'negra': 'EMERGENCIA'
+    };
+    return estados[nivel] || '--';
+}
+
+function obtenerDescripcionEstado(nivel) {
+    const descripciones = {
+        'verde': 'Condiciones favorables. Bajo riesgo de humo.',
+        'amarilla': 'Monitorear condiciones. Factores de riesgo presentes.',
+        'naranja': 'Alerta. Posible afectación por humo.',
+        'roja': 'Alta alerta. Viento norte con probabilidad de humo en ciudad.',
+        'negra': 'Emergencia. Condiciones extremas. Alto riesgo de humo.'
+    };
+    return descripciones[nivel] || '';
+}
+
+// ===== SISTEMA DE CÁMARAS =====
+function abrirTab(tabName) {
+    document.querySelectorAll('.tab-pane').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    event.target.classList.add('active');
+}
+
 function abrirCamara(tipo) {
     const links = {
-        'norte': '#', // ❌ Reemplaza con URLs reales accesibles desde internet
+        'norte': '#',
         'sur': '#',
         'este': '#', 
         'oeste': '#'
@@ -332,12 +553,24 @@ function abrirCamara(tipo) {
     }
 }
 
+function mostrarCamaras() {
+    abrirTab('norte');
+    document.querySelector('.camaras-section').scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+}
+
 // ===== FUNCIONES GLOBALES =====
 async function actualizarDatos() {
     console.log('🔄 Actualizando todos los datos...');
     
     await cargarDatosMeteorologicos();
     await monitorAmbiental.cargarTodosLosDatos();
+    
+    // Si el pronóstico está visible, actualizarlo también
+    if (pronosticoVisible) {
+        await cargarPronosticoIntegrado();
+    }
     
     const btn = event?.target;
     if (btn) {
@@ -352,6 +585,12 @@ async function actualizarDatos() {
     }
     
     actualizarTimestamp();
+}
+
+function actualizarTimestamp() {
+    const now = new Date();
+    document.getElementById('update-time').textContent = 
+        now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 }
 
 // ===== INICIALIZACIÓN =====
@@ -372,7 +611,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, { passive: false });
 });
-
-// Mantener las funciones que no mostré aquí (actualizarEstadosVariablesReales, 
-// actualizarSemaforoMobile, mostrarMensaje, etc.) ya que están correctas en tu código original.
-
