@@ -13,7 +13,7 @@
     <div class="container">
         <!-- HEADER COMPACTO -->
         <header class="mobile-header">
-            <h1>Panel de Monitoreo - Basural</h1>
+            <h1> Panel de Monitoreo - Basural </h1>
             <p class="last-update" id="last-update">Actualizado: <span id="update-time">--:--</span></p>
         </header>
 
@@ -42,51 +42,79 @@
                 <span class="icon">📷</span>
                 <span>Cámaras</span>
             </button>
+            <button class="quick-btn" onclick="cargarDatosSatelitales()">
+                <span class="icon">🛰️</span>
+                <span>Satélite</span>
+            </button>
         </div>
 
-       <!-- Sección Meteorológica - CON PRONÓSTICO -->
-<div class="meteo-section">
-    <div class="section-header">
-        <h3>🌤️ Variables Meteorológicas</h3>
-        <button onclick="togglePronostico()" class="btn-toggle-pronostico">
-            📅 Ver Pronóstico 48hs
-        </button>
-    </div>
-    
-    <!-- DATOS ACTUALES (como ya tenés) -->
-    <div class="datos-actuales">
-        <div class="dato-item">
-            <span class="dato-label">Viento:</span>
-            <span id="viento-velocidad-mobile">-- km/h</span>
-            <span id="viento-direccion-mobile">--</span>
-        </div>
-        <div class="dato-item">
-            <span class="dato-label">Dirección:</span>
-            <span id="estado-viento-mobile">--</span>
-        </div>
-        <div class="dato-item">
-            <span class="dato-label">Temperatura:</span>
-            <span id="temperatura-mobile">--°C</span>
-        </div>
-        <!-- ... el resto de tus datos actuales -->
-    </div>
-    
-    <!-- PRONÓSTICO 48HS (se muestra/oculta) -->
-    <div id="panel-pronostico-integrado" class="panel-pronostico-integrado" style="display: none;">
-        <div class="pronostico-header">
-            <h4>📊 Pronóstico Próximas 48 Horas</h4>
-            <small>Para planificar acciones</small>
-        </div>
-        <div id="contenido-pronostico-integrado" class="pronostico-integrado-content">
-            Cargando pronóstico...
-        </div>
-    </div>
-</div>
+        <!-- VARIABLES METEOROLÓGICAS CON PRONÓSTICO -->
+        <div class="seccion meteo-section">
+            <div class="section-header">
+                <h2>🌤️ Variables Meteorológicas</h2>
+                <button onclick="togglePronostico()" class="btn-toggle-pronostico">
+                    📅 Ver Pronóstico 48hs
+                </button>
+            </div>
+            
+            <div class="variables-scroll">
+                <div class="variable-card-mobile">
+                    <div class="var-icon">💨</div>
+                    <div class="var-content">
+                        <div class="var-name">Viento</div>
+                        <div class="var-value" id="viento-velocidad-mobile">-- km/h</div>
+                        <div class="var-direction" id="viento-direccion-mobile">--</div>
+                    </div>
+                    <div class="var-status" id="estado-viento-mobile">--</div>
+                </div>
 
-        <!-- VARIABLES AMBIENTALES -->
+                <div class="variable-card-mobile">
+                    <div class="var-icon">🌡️</div>
+                    <div class="var-content">
+                        <div class="var-name">Temperatura</div>
+                        <div class="var-value" id="temperatura-mobile">--°C</div>
+                        <div class="var-detail">--</div>
+                    </div>
+                    <div class="var-status" id="estado-temp-mobile">--</div>
+                </div>
+
+                <div class="variable-card-mobile">
+                    <div class="var-icon">💧</div>
+                    <div class="var-content">
+                        <div class="var-name">Humedad</div>
+                        <div class="var-value" id="humedad-mobile">--%</div>
+                        <div class="var-detail">--</div>
+                    </div>
+                    <div class="var-status" id="estado-humedad-mobile">--</div>
+                </div>
+
+                <div class="variable-card-mobile">
+                    <div class="var-icon">📊</div>
+                    <div class="var-content">
+                        <div class="var-name">Presión</div>
+                        <div class="var-value" id="presion-mobile">-- hPa</div>
+                        <div class="var-detail">--</div>
+                    </div>
+                    <div class="var-status" id="estado-presion-mobile">--</div>
+                </div>
+            </div>
+            
+            <!-- PRONÓSTICO 48HS -->
+            <div id="panel-pronostico-integrado" class="panel-pronostico-integrado" style="display: none;">
+                <div class="pronostico-header">
+                    <h4>📊 Pronóstico Próximas 48 Horas</h4>
+                    <small>Para planificar acciones - Se destacan horas con viento peligroso</small>
+                </div>
+                <div id="contenido-pronostico-integrado" class="pronostico-integrado-content">
+                    Cargando pronóstico...
+                </div>
+            </div>
+        </div>
+
+        <!-- VARIABLES AMBIENTALES CON DATOS REALES -->
         <div class="seccion">
             <div class="section-header">
-                <h2>🌍 Variables Ambientales</h2>
+                <h2>🌍 Variables Ambientales - Satélite</h2>
                 <span class="section-badge" id="estado-satelital">En línea</span>
             </div>
             
@@ -117,22 +145,11 @@
                 <div class="satelite-card">
                     <div class="satelite-header">
                         <span class="satelite-icon">🌫️</span>
-                        <h3>Calidad del Aire</h3>
+                        <h3>Aerosoles (PM2.5)</h3>
                     </div>
                     <div class="satelite-value" id="aerosoles">-- μg/m³</div>
-                    <div class="satelite-source">CAMS • Actualizado: <span id="update-aire">--:--</span></div>
+                    <div class="satelite-source">Open-Meteo Air • Actualizado: <span id="update-aire">--:--</span></div>
                     <div class="satelite-status" id="status-aire">Cargando...</div>
-                </div>
-
-                <!-- Monóxido de Carbono -->
-                <div class="satelite-card">
-                    <div class="satelite-header">
-                        <span class="satelite-icon">⛽</span>
-                        <h3>Monóxido de Carbono</h3>
-                    </div>
-                    <div class="satelite-value" id="co">-- mol/m²</div>
-                    <div class="satelite-source">Estimado • Actualizado: <span id="update-co">--:--</span></div>
-                    <div class="satelite-status" id="status-co">Cargando...</div>
                 </div>
 
                 <!-- Detección de Puntos Calientes -->
@@ -142,28 +159,22 @@
                         <h3>Puntos Calientes</h3>
                     </div>
                     <div class="satelite-value" id="puntos-calientes">0</div>
-                    <div class="satelite-source">FIRMS NASA • Actualizado: <span id="update-fuego">--:--</span></div>
+                    <div class="satelite-source">FIRMS NASA • Últimas 24h</div>
                     <div class="satelite-status" id="status-fuego">Sin detecciones</div>
                 </div>
-
-                <!-- Viento en Altura -->
-                <div class="satelite-card">
-                    <div class="satelite-header">
-                        <span class="satelite-icon">🎈</span>
-                        <h3>Viento en Altura</h3>
-                    </div>
-                    <div class="satelite-value" id="ndvi">-- km/h</div>
-                    <div class="satelite-source">ECMWF • Actualizado: <span id="update-ndvi">--:--</span></div>
-                    <div class="satelite-status" id="status-ndvi">Cargando...</div>
-                </div>
             </div>
+
+            <!-- Botón para actualizar datos satelitales -->
+            <button class="btn-satelite" onclick="cargarDatosSatelitales()">
+                🛰️ Actualizar Datos Satelitales
+            </button>
         </div>
 
         <!-- MONITOREO VISUAL - CÁMARAS -->
         <div class="seccion camaras-section">
             <div class="section-header">
                 <h2>📷 Monitoreo Visual</h2>
-                <span class="section-badge" id="estado-camaras">4 en línea</span>
+                <span class="section-badge" id="estado-camaras">4 cámaras</span>
             </div>
             
             <div class="camaras-tabs">
@@ -246,4 +257,3 @@
     <script src="script.js"></script>
 </body>
 </html>
-
