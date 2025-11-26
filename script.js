@@ -1,15 +1,15 @@
 // Configuración del sistema MEJORADA
 const config = {
-    // Direcciones de VIENTO NORTE que traen humo a la ciudad
+    // Direcciones de VIENTO que traen humo a la ciudad
     direccionesRiesgo: {
-        'N': { nivel: 'roja', desc: 'ALTO RIESGO - Viento norte directo a ciudad' },
-        'NO': { nivel: 'roja', desc: 'ALTO RIESGO - Viento noroeste a ciudad' },
-        'NE': { nivel: 'roja', desc: 'ALTO RIESGO - Viento noreste a ciudad' },
-        'O': { nivel: 'naranja', desc: 'RIESGO MODERADO - Posible afectación' },
+        'SE': { nivel: 'roja', desc: 'ALTO RIESGO - Viento directo a ciudad' },
+        'SO': { nivel: 'roja', desc: 'ALTO RIESGO - Viento directo a ciudad' },
+        'S': { nivel: 'naranja', desc: 'RIESGO MODERADO - Posible afectación' },
         'E': { nivel: 'naranja', desc: 'RIESGO MODERADO - Dirección desfavorable' },
-        'SO': { nivel: 'amarilla', desc: 'ATENCIÓN - Monitorear situación' },
-        'SE': { nivel: 'amarilla', desc: 'ATENCIÓN - Monitorear situación' },
-        'S': { nivel: 'verde', desc: 'SITUACIÓN FAVORABLE' }
+        'NE': { nivel: 'amarilla', desc: 'ATENCIÓN - Monitorear situación' },
+        'NO': { nivel: 'amarilla', desc: 'ATENCIÓN - Monitorear situación' },
+        'N': { nivel: 'verde', desc: 'SITUACIÓN FAVORABLE' },
+        'O': { nivel: 'verde', desc: 'SITUACIÓN FAVORABLE' }
     },
     
     // Umbrales de riesgo
@@ -20,16 +20,17 @@ const config = {
         presionBaja: 1012
     },
     
-    // Configuración de APIs (MÁS ROBUSTA)
+    // Configuración de APIs
     apis: {
         openMeteo: 'https://api.open-meteo.com/v1/forecast',
         airQuality: 'https://air-quality-api.open-meteo.com/v1/air-quality',
+        openWeather: 'https://api.openweathermap.org/data/2.5/weather'
     }
 };
 
 // Estado inicial
 let estadoActual = 'verde';
-let ubicacionActual = { lat: -34.57, lon: -59.10 }; // Coordenadas por defecto
+let ubicacionActual = { lat: -34.57, lon: -59.10 }; // Coordenadas Luján
 let pronosticoVisible = false;
 
 // ===== FUNCIONES AUXILIARES =====
@@ -40,10 +41,11 @@ function gradosADireccion(grados) {
     return direcciones[index];
 }
 
-function esVientoNortePeligroso(grados) {
+function esVientoPeligroso(grados) {
     if (grados === undefined || grados === null) return false;
     const gradosNormalizados = (grados + 360) % 360;
-    return (gradosNormalizados >= 300 || gradosNormalizados <= 45);
+    // SE (135°) a SO (225°) son direcciones peligrosas
+    return (gradosNormalizados >= 135 && gradosNormalizados <= 225);
 }
 
 function calcularNivelRiesgo(datos) {
@@ -56,8 +58,8 @@ function calcularNivelRiesgo(datos) {
     
     let nivelBase = 'verde';
     
-    // FACTOR 1: VIENTO NORTE (principal)
-    if (esVientoNortePeligroso(datos.wind_direction_10m)) {
+    // FACTOR 1: VIENTO PELIGROSO (principal)
+    if (esVientoPeligroso(datos.wind_direction_10m)) {
         if (vientoVelocidad > config.umbrales.vientoAlerta) {
             nivelBase = config.direccionesRiesgo[vientoDireccion]?.nivel || 'roja';
             
@@ -91,8 +93,8 @@ function actualizarEstadosVariablesReales(datos) {
     
     // Estado de viento
     let estadoViento = '✅ Normal';
-    if (esVientoNortePeligroso(datos.wind_direction_10m) && datos.wind_speed_10m > config.umbrales.vientoAlerta) {
-        estadoViento = '🚨 Norte Peligroso';
+    if (esVientoPeligroso(datos.wind_direction_10m) && datos.wind_speed_10m > config.umbrales.vientoAlerta) {
+        estadoViento = '🚨 Peligroso';
     } else if (datos.wind_speed_10m > config.umbrales.vientoExtremo) {
         estadoViento = '⚠️ Muy Fuerte';
     } else if (datos.wind_speed_10m > config.umbrales.vientoAlerta) {
@@ -136,13 +138,11 @@ function togglePronostico() {
     const boton = event.target;
     
     if (!pronosticoVisible) {
-        // Mostrar y cargar pronóstico
         panel.style.display = 'block';
         boton.textContent = '📅 Ocultar Pronóstico';
         cargarPronosticoIntegrado();
         pronosticoVisible = true;
     } else {
-        // Ocultar pronóstico
         panel.style.display = 'none';
         boton.textContent = '📅 Ver Pronóstico 48hs';
         pronosticoVisible = false;
@@ -174,11 +174,10 @@ function mostrarPronosticoIntegrado(data) {
     const contenido = document.getElementById('contenido-pronostico-integrado');
     const horas = data.hourly.time;
     
-    // Agrupar por días para mejor visualización
     const pronosticoPorDia = {};
     
     horas.forEach((hora, index) => {
-        if (index >= 48) return; // Solo 48 horas
+        if (index >= 48) return;
         
         const fecha = new Date(hora);
         const diaKey = fecha.toLocaleDateString('es-AR');
@@ -194,8 +193,8 @@ function mostrarPronosticoIntegrado(data) {
         const humedad = data.hourly.relative_humidity_2m[index];
         
         const direccionViento = gradosADireccion(vientoDir);
-        const esRiesgoso = esVientoNortePeligroso(vientoDir) && vientoVel > config.umbrales.vientoAlerta;
-        const esAlerta = esVientoNortePeligroso(vientoDir);
+        const esRiesgoso = esVientoPeligroso(vientoDir) && vientoVel > config.umbrales.vientoAlerta;
+        const esAlerta = esVientoPeligroso(vientoDir);
         
         pronosticoPorDia[diaKey].push({
             hora: horaStr,
@@ -219,10 +218,9 @@ function mostrarPronosticoIntegrado(data) {
                     <h5>${diaSemana} (${dia})</h5>
                     <div class="grid-pronostico">`;
         
-        // Mostrar solo horas clave: 6am, 12pm, 6pm, 12am o las que tengan riesgo
         const horasClave = datosDia.filter((dato, index) => 
-            index % 6 === 0 || dato.esRiesgoso // Cada 6 horas o si hay riesgo
-        ).slice(0, 8); // Máximo 8 items por día
+            index % 6 === 0 || dato.esRiesgoso
+        ).slice(0, 8);
         
         horasClave.forEach(dato => {
             const claseRiesgo = dato.esRiesgoso ? 'riesgo' : dato.esAlerta ? 'alerta' : '';
@@ -247,22 +245,22 @@ function mostrarPronosticoIntegrado(data) {
     contenido.innerHTML = html;
 }
 
-// ===== SISTEMA DE DATOS METEOROLÓGICOS CORREGIDO =====
+// ===== SISTEMA DE DATOS METEOROLÓGICOS CON FALLBACK =====
 async function cargarDatosMeteorologicos() {
     try {
         console.log('🌤️ Cargando datos meteorológicos...');
         
-        // USAMOS SOLO OPEN-METEO (más confiable y sin API key)
+        // INTENTO 1: Open-Meteo (principal)
         const response = await fetch(
             `${config.apis.openMeteo}?latitude=${ubicacionActual.lat}&longitude=${ubicacionActual.lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m&wind_speed_unit=km_h&timezone=America%2FSao_Paulo`
         );
         
-        if (!response.ok) throw new Error('Error en API meteorológica');
+        if (!response.ok) throw new Error('Error en Open-Meteo');
         
         const data = await response.json();
         const current = data.current;
         
-        console.log('Datos meteorológicos recibidos:', current);
+        console.log('✅ Datos Open-Meteo recibidos:', current);
 
         // Actualizar interfaz
         document.getElementById('viento-velocidad-mobile').textContent = `${Math.round(current.wind_speed_10m)} km/h`;
@@ -279,9 +277,45 @@ async function cargarDatosMeteorologicos() {
         return true;
         
     } catch (error) {
-        console.error('Error cargando datos meteorológicos:', error);
+        console.error('❌ Error Open-Meteo:', error);
+        return await cargarDatosMeteorologicosFallback();
+    }
+}
+
+async function cargarDatosMeteorologicosFallback() {
+    try {
+        console.log('🔄 Intentando con API alternativa...');
         
-        // Datos de ejemplo como último recurso
+        // INTENTO 2: WeatherAPI alternativa (ejemplo con otra API)
+        const response = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${ubicacionActual.lat}&longitude=${ubicacionActual.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m&wind_speed_unit=km_h&timezone=auto`
+        );
+        
+        if (!response.ok) throw new Error('Error en API alternativa');
+        
+        const data = await response.json();
+        const current = data.current;
+        
+        console.log('✅ Datos alternativa recibidos:', current);
+
+        // Actualizar interfaz
+        document.getElementById('viento-velocidad-mobile').textContent = `${Math.round(current.wind_speed_10m)} km/h`;
+        document.getElementById('viento-direccion-mobile').textContent = gradosADireccion(current.wind_direction_10m);
+        document.getElementById('temperatura-mobile').textContent = `${Math.round(current.temperature_2m)}°C`;
+        document.getElementById('humedad-mobile').textContent = `${Math.round(current.relative_humidity_2m)}%`;
+        document.getElementById('presion-mobile').textContent = '1013 hPa'; // Valor por defecto
+
+        actualizarEstadosVariablesReales(current);
+        const nivel = calcularNivelRiesgo(current);
+        actualizarSemaforoMobile(nivel);
+        
+        mostrarMensaje('✅ Datos alternativos actualizados', 'success');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error API alternativa:', error);
+        
+        // Último recurso: datos simulados
         document.getElementById('viento-velocidad-mobile').textContent = '-- km/h';
         document.getElementById('viento-direccion-mobile').textContent = '--';
         document.getElementById('temperatura-mobile').textContent = '--°C';
@@ -293,21 +327,36 @@ async function cargarDatosMeteorologicos() {
     }
 }
 
-// ===== SISTEMA DE DATOS AMBIENTALES CORREGIDO =====
+// ===== SISTEMA DE DATOS AMBIENTALES CON FIRMS REAL =====
 class MonitorAmbiental {
     constructor() {
         this.coordenadasBasural = {
             lat: -34.521444,
             lon: -59.118778
         };
-        this.ultimaActualizacion = null;
+        this.API_KEY_FIRMS = 'f3c02b9c0577f6717ec51986ba53164c'; // Tu API key
     }
 
     async cargarTodosLosDatos() {
         try {
-            console.log('🛰️ Cargando todos los datos ambientales...');
+            console.log('🛰️ Cargando datos ambientales...');
             
-            // Cargamos todo en una sola llamada para mayor eficiencia
+            // Cargar datos de suelo y aire
+            await this.cargarDatosSueloYAire();
+            
+            // Cargar puntos calientes FIRMS
+            await this.cargarPuntosCalientes();
+            
+            return true;
+            
+        } catch (error) {
+            console.error('Error cargando datos ambientales:', error);
+            return false;
+        }
+    }
+
+    async cargarDatosSueloYAire() {
+        try {
             const urls = [
                 `${config.apis.openMeteo}?latitude=${this.coordenadasBasural.lat}&longitude=${this.coordenadasBasural.lon}&hourly=soil_temperature_0cm,soil_moisture_0_1cm&timezone=America%2FSao_Paulo`,
                 `${config.apis.airQuality}?latitude=${this.coordenadasBasural.lat}&longitude=${this.coordenadasBasural.lon}&hourly=pm2_5&timezone=America%2FSao_Paulo`
@@ -322,30 +371,88 @@ class MonitorAmbiental {
             let humedadSuelo = null;
             let calidadAire = null;
 
-            // Procesar temperatura y humedad
             if (meteoResponse.status === 'fulfilled' && meteoResponse.value.ok) {
                 const data = await meteoResponse.value.json();
                 tempSuperficial = data.hourly.soil_temperature_0cm[0];
                 humedadSuelo = data.hourly.soil_moisture_0_1cm[0];
             }
 
-            // Procesar calidad del aire
             if (aireResponse.status === 'fulfilled' && aireResponse.value.ok) {
                 const data = await aireResponse.value.json();
                 calidadAire = data.hourly.pm2_5[0];
             }
 
-            // Actualizar interfaz
             this.actualizarInterfazAmbiental(tempSuperficial, humedadSuelo, calidadAire);
-            
-            // Cargar puntos calientes por separado
-            await this.cargarPuntosCalientes();
-            
-            this.ultimaActualizacion = new Date();
             return true;
             
         } catch (error) {
-            console.error('Error cargando datos ambientales:', error);
+            console.error('Error en datos suelo/aire:', error);
+            return false;
+        }
+    }
+
+    async cargarPuntosCalientes() {
+        try {
+            console.log('🔥 Buscando puntos calientes FIRMS...');
+            
+            const hoy = new Date();
+            const ayer = new Date(hoy);
+            ayer.setDate(hoy.getDate() - 1);
+            
+            const fechaAyer = ayer.toISOString().split('T')[0].replace(/-/g, '');
+            const fechaHoy = hoy.toISOString().split('T')[0].replace(/-/g, '');
+            
+            // Radio de 600 metros alrededor del basural (0.0054 grados ≈ 600m)
+            const radioGrados = 0.0054;
+            const north = this.coordenadasBasural.lat + radioGrados;
+            const south = this.coordenadasBasural.lat - radioGrados;
+            const east = this.coordenadasBasural.lon + radioGrados;
+            const west = this.coordenadasBasural.lon - radioGrados;
+            
+            const firmsUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${this.API_KEY_FIRMS}/MODIS_NRT/${north},${west},${south},${east}/1/${fechaAyer},${fechaHoy}`;
+            
+            console.log('📍 Buscando en radio 600m alrededor del basural');
+            
+            const response = await fetch(firmsUrl);
+            
+            if (response.ok) {
+                const csv = await response.text();
+                const lineas = csv.split('\n').filter(line => 
+                    line.trim() !== '' && !line.includes('latitude') && line.trim() !== ''
+                );
+                const puntos = Math.max(0, lineas.length - 1);
+                
+                document.getElementById('puntos-calientes').textContent = puntos;
+                document.getElementById('update-fuego').textContent = this.formatearHora(new Date());
+                
+                if (puntos > 0) {
+                    document.getElementById('status-fuego').textContent = `🚨 ${puntos} puntos detectados`;
+                    document.getElementById('status-fuego').className = 'satelite-status alerta-activa';
+                    
+                    // ACTIVAR ALERTA MÁXIMA
+                    actualizarSemaforoMobile('negra');
+                    mostrarMensaje('🚨 INCENDIO DETECTADO EN BASURAL', 'emergencia');
+                    
+                    if ('vibrate' in navigator) {
+                        navigator.vibrate([500, 200, 500, 200, 500]);
+                    }
+                } else {
+                    document.getElementById('status-fuego').textContent = 'Sin detecciones';
+                    document.getElementById('status-fuego').className = 'satelite-status';
+                }
+                
+                console.log(`✅ FIRMS: ${puntos} puntos calientes detectados`);
+                return true;
+                
+            } else {
+                document.getElementById('status-fuego').textContent = 'Error API FIRMS';
+                return false;
+            }
+            
+        } catch (error) {
+            console.error('❌ Error FIRMS:', error);
+            document.getElementById('status-fuego').textContent = 'Error conexión';
+            document.getElementById('puntos-calientes').textContent = '--';
             return false;
         }
     }
@@ -354,7 +461,7 @@ class MonitorAmbiental {
         const timestamp = this.formatearHora(new Date());
         
         // Temperatura superficial
-        if (temp !== null) {
+        if (temp !== null && temp !== undefined) {
             document.getElementById('temp-superficial').textContent = `${Math.round(temp)}°C`;
             document.getElementById('update-temp').textContent = timestamp;
             
@@ -370,7 +477,7 @@ class MonitorAmbiental {
         }
 
         // Humedad del suelo
-        if (humedad !== null) {
+        if (humedad !== null && humedad !== undefined) {
             const humedadPorcentaje = Math.round(humedad * 100);
             document.getElementById('humedad-suelo').textContent = `${humedadPorcentaje}%`;
             document.getElementById('update-humedad').textContent = timestamp;
@@ -387,7 +494,7 @@ class MonitorAmbiental {
         }
 
         // Calidad del aire
-        if (aire !== null) {
+        if (aire !== null && aire !== undefined) {
             document.getElementById('aerosoles').textContent = `${Math.round(aire)} μg/m³`;
             document.getElementById('update-aire').textContent = timestamp;
             
@@ -399,65 +506,7 @@ class MonitorAmbiental {
             document.getElementById('status-aire').className = `satelite-status calidad-${calidad}`;
         } else {
             document.getElementById('aerosoles').textContent = '-- μg/m³';
-            document.getElementById('status-aire').textContent = 'Error datos';
-        }
-    }
-
-    async cargarPuntosCalientes() {
-        try {
-            console.log('🔥 Buscando puntos calientes...');
-            
-            const hoy = new Date();
-            const ayer = new Date(hoy);
-            ayer.setDate(hoy.getDate() - 1);
-            
-            const fechaAyer = ayer.toISOString().split('T')[0].replace(/-/g, '');
-            const fechaHoy = hoy.toISOString().split('T')[0].replace(/-/g, '');
-            
-            const north = this.coordenadasBasural.lat + 0.1; // Área más amplia
-            const south = this.coordenadasBasural.lat - 0.1;
-            const east = this.coordenadasBasural.lon + 0.1;
-            const west = this.coordenadasBasural.lon - 0.1;
-            
-            // URL de FIRMS con área más amplia
-            const firmsUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/61b2a42d5e243f73c216b5a8997c4f3b/MODIS_NRT/${north},${west},${south},${east}/1/${fechaAyer},${fechaHoy}`;
-            
-            const response = await fetch(firmsUrl);
-            
-            if (response.ok) {
-                const csv = await response.text();
-                const lineas = csv.split('\n').filter(line => line.trim() !== '');
-                const puntos = Math.max(0, lineas.length - 1);
-                
-                document.getElementById('puntos-calientes').textContent = puntos;
-                document.getElementById('update-fuego').textContent = this.formatearHora(new Date());
-                
-                if (puntos > 0) {
-                    document.getElementById('status-fuego').textContent = `🚨 ${puntos} puntos detectados`;
-                    document.getElementById('status-fuego').className = 'satelite-status alerta-activa';
-                    
-                    // ACTIVAR ALERTA MÁXIMA
-                    actualizarSemaforoMobile('negra');
-                    mostrarMensaje('🚨 INCENDIO DETECTADO EN ZONA', 'emergencia');
-                    
-                    if ('vibrate' in navigator) {
-                        navigator.vibrate([500, 200, 500, 200, 500]);
-                    }
-                } else {
-                    document.getElementById('status-fuego').textContent = 'Sin detecciones';
-                    document.getElementById('status-fuego').className = 'satelite-status';
-                }
-                
-                return true;
-            } else {
-                document.getElementById('status-fuego').textContent = 'Error NASA FIRMS';
-                return false;
-            }
-            
-        } catch (error) {
-            console.error('Error FIRMS:', error);
-            document.getElementById('status-fuego').textContent = 'Error cargando';
-            return false;
+            document.getElementById('status-aire').textContent = 'Sin datos';
         }
     }
 
@@ -518,7 +567,7 @@ function obtenerDescripcionEstado(nivel) {
         'verde': 'Condiciones favorables. Bajo riesgo de humo.',
         'amarilla': 'Monitorear condiciones. Factores de riesgo presentes.',
         'naranja': 'Alerta. Posible afectación por humo.',
-        'roja': 'Alta alerta. Viento norte con probabilidad de humo en ciudad.',
+        'roja': 'Alta alerta. Viento con probabilidad de humo en ciudad.',
         'negra': 'Emergencia. Condiciones extremas. Alto riesgo de humo.'
     };
     return descripciones[nivel] || '';
@@ -585,6 +634,14 @@ async function actualizarDatos() {
     }
     
     actualizarTimestamp();
+}
+
+function cargarDatosSatelitales() {
+    monitorAmbiental.cargarTodosLosDatos();
+    
+    if ('vibrate' in navigator) {
+        navigator.vibrate(100);
+    }
 }
 
 function actualizarTimestamp() {
