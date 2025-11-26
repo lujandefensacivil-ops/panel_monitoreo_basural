@@ -125,45 +125,98 @@ function mostrarMensaje(texto, tipo) {
     console.log(`[${tipo}] ${texto}`);
 }
 
-// ===== DATOS METEOROLÓGICOS REALES =====
+// ===== DATOS METEOROLÓGICOS REALES - OPENWEATHERMAP =====
 async function cargarDatosReales() {
     try {
-        console.log('🌤️ Cargando datos meteorológicos...');
+        console.log('🌤️ Cargando datos de OpenWeatherMap...');
         
-        // Open-Meteo con datos ECMWF
+        // OpenWeatherMap - API gratuita (1000 calls/día)
+        // Para obtener API key: https://home.openweathermap.org/users/sign_up
+        const API_KEY = 'demo'; // Cambiá por tu API key real
+        const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=-34.57&lon=-59.10&units=metric&lang=es&appid=${API_KEY}`);
+        
+        if (!response.ok) {
+            // Si falla, probamos con Open-Meteo como fallback
+            return await cargarDatosOpenMeteo();
+        }
+        
+        const data = await response.json();
+        console.log('Datos OpenWeatherMap recibidos:', data);
+
+        // Procesar datos de OpenWeatherMap
+        const vientoVelocidad = (data.wind.speed * 3.6).toFixed(1); // m/s a km/h
+        const vientoDireccion = gradosADireccion(data.wind.deg);
+        const temperatura = Math.round(data.main.temp);
+        const humedad = data.main.humidity;
+        const presion = data.main.pressure;
+
+        // Actualizar interfaz
+        document.getElementById('viento-velocidad-mobile').textContent = `${vientoVelocidad} km/h`;
+        document.getElementById('viento-direccion-mobile').textContent = vientoDireccion;
+        document.getElementById('temperatura-mobile').textContent = `${temperatura}°C`;
+        document.getElementById('humedad-mobile').textContent = `${humedad}%`;
+        document.getElementById('presion-mobile').textContent = `${presion} hPa`;
+
+        // Preparar datos para el semáforo
+        const datosParaSemáforo = {
+            wind_speed_10m: parseFloat(vientoVelocidad),
+            wind_direction_10m: data.wind.deg,
+            temperature_2m: temperatura,
+            relative_humidity_2m: humedad,
+            surface_pressure: presion
+        };
+
+        actualizarEstadosVariablesReales(datosParaSemáforo);
+        const nivel = calcularNivelRiesgo(datosParaSemáforo);
+        actualizarSemaforoMobile(nivel);
+        
+        mostrarMensaje('✅ Datos OpenWeatherMap actualizados', 'success');
+        return true;
+        
+    } catch (error) {
+        console.error('Error OpenWeatherMap:', error);
+        return await cargarDatosOpenMeteo(); // Fallback a Open-Meteo
+    }
+}
+
+// Fallback con Open-Meteo
+async function cargarDatosOpenMeteo() {
+    try {
+        console.log('🔄 Intentando con Open-Meteo...');
+        
         const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.57&longitude=-59.10&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,wind_direction_10m&wind_speed_unit=km_h&timezone=America%2FSao_Paulo');
         
-        if (!response.ok) throw new Error('Error en la API');
+        if (!response.ok) throw new Error('Error en Open-Meteo');
         
         const data = await response.json();
         const current = data.current;
         
-        console.log('Datos meteorológicos recibidos:', current);
+        console.log('Datos Open-Meteo recibidos:', current);
 
-        // Actualizar interfaz con datos REALES
-        document.getElementById('viento-velocidad-mobile').textContent = 
-            `${Math.round(current.wind_speed_10m)} km/h`;
-        document.getElementById('viento-direccion-mobile').textContent = 
-            gradosADireccion(current.wind_direction_10m);
-        document.getElementById('temperatura-mobile').textContent = 
-            `${Math.round(current.temperature_2m)}°C`;
-        document.getElementById('humedad-mobile').textContent = 
-            `${Math.round(current.relative_humidity_2m)}%`;
-        document.getElementById('presion-mobile').textContent = 
-            `${Math.round(current.surface_pressure)} hPa`;
+        // Actualizar interfaz
+        document.getElementById('viento-velocidad-mobile').textContent = `${Math.round(current.wind_speed_10m)} km/h`;
+        document.getElementById('viento-direccion-mobile').textContent = gradosADireccion(current.wind_direction_10m);
+        document.getElementById('temperatura-mobile').textContent = `${Math.round(current.temperature_2m)}°C`;
+        document.getElementById('humedad-mobile').textContent = `${Math.round(current.relative_humidity_2m)}%`;
+        document.getElementById('presion-mobile').textContent = `${Math.round(current.surface_pressure)} hPa`;
 
-        // Actualizar estados individuales
         actualizarEstadosVariablesReales(current);
-        
-        // Calcular nivel de alerta
         const nivel = calcularNivelRiesgo(current);
         actualizarSemaforoMobile(nivel);
         
-        mostrarMensaje('✅ Datos meteorológicos actualizados', 'success');
+        mostrarMensaje('✅ Datos Open-Meteo actualizados', 'success');
         return true;
         
     } catch (error) {
-        console.error('Error cargando datos:', error);
+        console.error('Error Open-Meteo:', error);
+        
+        // Datos de ejemplo como último recurso
+        document.getElementById('viento-velocidad-mobile').textContent = '-- km/h';
+        document.getElementById('viento-direccion-mobile').textContent = '--';
+        document.getElementById('temperatura-mobile').textContent = '--°C';
+        document.getElementById('humedad-mobile').textContent = '--%';
+        document.getElementById('presion-mobile').textContent = '-- hPa';
+        
         mostrarMensaje('❌ Error cargando datos meteorológicos', 'error');
         return false;
     }
@@ -473,3 +526,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, { passive: false });
 });
+
