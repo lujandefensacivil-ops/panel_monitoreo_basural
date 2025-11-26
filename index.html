@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Monitor Basural Luján</title>
     
-    <!-- ESTILOS INLINE - SEGURO QUE FUNCIONAN -->
+    <!-- ESTILOS INTEGRADOS -->
     <style>
         * {
             margin: 0;
@@ -86,7 +86,6 @@
         .amarilla { background: #f1c40f; }
         .naranja { background: #e67e22; }
         .roja { background: #e74c3c; }
-        .negra { background: #2c3e50; border: 3px solid #34495e; }
 
         .estado-mobile h2 {
             font-size: 1.8em;
@@ -98,7 +97,6 @@
         .estado-amarilla { color: #f1c40f; }
         .estado-naranja { color: #e67e22; }
         .estado-roja { color: #e74c3c; }
-        .estado-negra { color: #2c3e50; }
 
         .estado-mobile p {
             color: #666;
@@ -108,7 +106,7 @@
         /* BOTONES RÁPIDOS */
         .quick-actions {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
             margin-bottom: 20px;
         }
@@ -271,12 +269,11 @@
             margin-top: 15px;
         }
 
-        /* Grid de pronóstico */
-        .grid-pronostico {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            margin-top: 10px;
+        /* Grid de pronóstico SIMPLIFICADO */
+        .pronostico-simple {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .item-pronostico {
@@ -290,11 +287,6 @@
         .item-pronostico.riesgo {
             border-left-color: #e74c3c;
             background: #ffeaea;
-        }
-
-        .item-pronostico.alerta {
-            border-left-color: #f39c12;
-            background: #fff3cd;
         }
 
         .hora-pronostico {
@@ -329,19 +321,7 @@
             font-weight: 700;
         }
 
-        .dia-pronostico {
-            margin-bottom: 20px;
-        }
-
-        .dia-pronostico h5 {
-            color: #2c3e50;
-            margin-bottom: 12px;
-            font-size: 1em;
-            padding-bottom: 5px;
-            border-bottom: 2px solid #ecf0f1;
-        }
-
-        /* SATÉLITE CARDS */
+        /* VARIABLES AMBIENTALES */
         .satelite-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -400,32 +380,14 @@
             display: inline-block;
         }
 
-        .btn-satelite {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            border-radius: 25px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            font-size: 1.1em;
-            transition: background 0.3s ease;
-        }
-
-        .btn-satelite:active {
-            background: #2980b9;
-            transform: scale(0.98);
-        }
-
-        /* CÁMARAS - TABS */
+        /* CÁMARAS SIMPLIFICADAS */
         .camaras-tabs {
             margin-top: 15px;
         }
 
         .tab-buttons {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 5px;
             margin-bottom: 15px;
         }
@@ -560,10 +522,6 @@
                 grid-template-columns: 1fr;
             }
             
-            .grid-pronostico {
-                grid-template-columns: 1fr;
-            }
-            
             .section-header {
                 flex-direction: column;
                 align-items: flex-start;
@@ -592,17 +550,12 @@
             border: 1px solid #fadbd8;
         }
     </style>
-
-    <link rel="apple-touch-icon" href="icon.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-    <!-- EL RESTO DE TU HTML (todo el contenido del body que ya tenés) -->
     <div class="container">
         <!-- HEADER COMPACTO -->
         <header class="mobile-header">
-            <h1> Panel de Monitoreo - Basural </h1>
+            <h1>Panel de Monitoreo - Basural</h1>
             <p class="last-update" id="last-update">Actualizado: <span id="update-time">--:--</span></p>
         </header>
 
@@ -613,7 +566,6 @@
                 <div class="luz-mobile amarilla" id="luz-amarilla-mobile"></div>
                 <div class="luz-mobile naranja" id="luz-naranja-mobile"></div>
                 <div class="luz-mobile roja" id="luz-roja-mobile"></div>
-                <div class="luz-mobile negra" id="luz-negra-mobile"></div>
             </div>
             <div class="estado-mobile">
                 <h2 id="texto-estado-mobile" class="estado-verde">NORMAL</h2>
@@ -630,10 +582,6 @@
             <button class="quick-btn" onclick="mostrarCamaras()">
                 <span class="icon">📷</span>
                 <span>Cámaras</span>
-            </button>
-            <button class="quick-btn" onclick="cargarDatosSatelitales()">
-                <span class="icon">🛰️</span>
-                <span>Satélite</span>
             </button>
         </div>
 
@@ -700,131 +648,96 @@
             </div>
         </div>
 
-        <!-- VARIABLES AMBIENTALES CON DATOS REALES -->
+        <!-- VARIABLES AMBIENTALES - LAS 4 CLAVE -->
         <div class="seccion">
             <div class="section-header">
-                <h2>🌍 Variables Ambientales - Satélite</h2>
-                <span class="section-badge" id="estado-satelital">En línea</span>
+                <h2>🌍 Calidad del Aire - Luján</h2>
+                <span class="section-badge" id="estado-aire">Monitoreando</span>
             </div>
             
             <div class="satelite-grid">
-                <!-- Temperatura Superficial -->
+                <!-- 1. CALIDAD AIRE GENERAL -->
                 <div class="satelite-card">
                     <div class="satelite-header">
-                        <span class="satelite-icon">🔥</span>
-                        <h3>Temperatura Superficial</h3>
+                        <span class="satelite-icon">🌍</span>
+                        <h3>Calidad del Aire</h3>
                     </div>
-                    <div class="satelite-value" id="temp-superficial">-- °C</div>
-                    <div class="satelite-source">Open-Meteo • Actualizado: <span id="update-temp">--:--</span></div>
-                    <div class="satelite-status" id="status-temp">Cargando...</div>
-                </div>
-
-                <!-- Humedad del Suelo -->
-                <div class="satelite-card">
-                    <div class="satelite-header">
-                        <span class="satelite-icon">💧</span>
-                        <h3>Humedad del Suelo</h3>
-                    </div>
-                    <div class="satelite-value" id="humedad-suelo">-- %</div>
-                    <div class="satelite-source">Open-Meteo • Actualizado: <span id="update-humedad">--:--</span></div>
-                    <div class="satelite-status" id="status-humedad">Cargando...</div>
-                </div>
-
-                <!-- Calidad del Aire - Aerosoles -->
-                <div class="satelite-card">
-                    <div class="satelite-header">
-                        <span class="satelite-icon">🌫️</span>
-                        <h3>Aerosoles (PM2.5)</h3>
-                    </div>
-                    <div class="satelite-value" id="aerosoles">-- μg/m³</div>
-                    <div class="satelite-source">Open-Meteo Air • Actualizado: <span id="update-aire">--:--</span></div>
+                    <div class="satelite-value" id="calidad-aire">--</div>
+                    <div class="satelite-source">TROPOMI</div>
                     <div class="satelite-status" id="status-aire">Cargando...</div>
                 </div>
 
-                <!-- Detección de Puntos Calientes -->
-                <div class="satelite-card alerta">
+                <!-- 2. HUMO -->
+                <div class="satelite-card">
                     <div class="satelite-header">
-                        <span class="satelite-icon">🚨</span>
-                        <h3>Puntos Calientes</h3>
+                        <span class="satelite-icon">🌫️</span>
+                        <h3>Partículas PM2.5</h3>
+                    </div>
+                    <div class="satelite-value" id="pm25">-- μg/m³</div>
+                    <div class="satelite-source">TROPOMI</div>
+                    <div class="satelite-status" id="status-pm25">Cargando...</div>
+                </div>
+
+                <!-- 3. GASES -->
+                <div class="satelite-card">
+                    <div class="satelite-header">
+                        <span class="satelite-icon">⛽</span>
+                        <h3>Monóxido Carbono</h3>
+                    </div>
+                    <div class="satelite-value" id="co">-- μg/m³</div>
+                    <div class="satelite-source">TROPOMI</div>
+                    <div class="satelite-status" id="status-co">Cargando...</div>
+                </div>
+
+                <!-- 4. INCENDIOS -->
+                <div class="satelite-card">
+                    <div class="satelite-header">
+                        <span class="satelite-icon">🔥</span>
+                        <h3>Incendios Activos</h3>
                     </div>
                     <div class="satelite-value" id="puntos-calientes">0</div>
-                    <div class="satelite-source">FIRMS NASA • Últimas 24h</div>
-                    <div class="satelite-status" id="status-fuego">Sin detecciones</div>
+                    <div class="satelite-source">FIRMS NASA</div>
+                    <div class="satelite-status" id="status-fuego">Normal</div>
                 </div>
             </div>
-
-            <!-- Botón para actualizar datos satelitales -->
-            <button class="btn-satelite" onclick="cargarDatosSatelitales()">
-                🛰️ Actualizar Datos Satelitales
-            </button>
         </div>
 
-        <!-- MONITOREO VISUAL - CÁMARAS -->
+        <!-- MONITOREO VISUAL - CÁMARAS SIMPLIFICADO -->
         <div class="seccion camaras-section">
             <div class="section-header">
                 <h2>📷 Monitoreo Visual</h2>
-                <span class="section-badge" id="estado-camaras">4 cámaras</span>
+                <span class="section-badge" id="estado-camaras">2 cámaras</span>
             </div>
             
             <div class="camaras-tabs">
                 <div class="tab-buttons">
-                    <button class="tab-btn active" onclick="abrirTab('norte')">Norte</button>
-                    <button class="tab-btn" onclick="abrirTab('sur')">Sur</button>
-                    <button class="tab-btn" onclick="abrirTab('este')">Este</button>
-                    <button class="tab-btn" onclick="abrirTab('oeste')">Oeste</button>
+                    <button class="tab-btn active" onclick="abrirTab('ruta192')">Ruta 192</button>
+                    <button class="tab-btn" onclick="abrirTab('entrada')">Entrada</button>
                 </div>
                 
                 <div class="tab-content">
-                    <div class="tab-pane active" id="tab-norte">
+                    <div class="tab-pane active" id="tab-ruta192">
                         <div class="camara-preview">
-                            <img src="https://via.placeholder.com/400x250/2D3748/FFFFFF?text=Cámara+Norte+Online" 
-                                 alt="Cámara Norte" class="camara-img">
+                            <img src="https://via.placeholder.com/400x250/2D3748/FFFFFF?text=Cámara+Ruta+192+Online" 
+                                 alt="Cámara Ruta 192" class="camara-img">
                             <div class="camara-info">
-                                <h3>Cámara Norte - Basural</h3>
-                                <p>Vista principal del basural</p>
-                                <button class="btn-ver-camara" onclick="abrirCamara('norte')">
+                                <h3>Cámara Ruta 192</h3>
+                                <p>Vista panorámica del basural desde ruta</p>
+                                <button class="btn-ver-camara" onclick="abrirCamara('ruta192')">
                                     📱 Ver en Vivo
                                 </button>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="tab-pane" id="tab-sur">
+                    <div class="tab-pane" id="tab-entrada">
                         <div class="camara-preview">
-                            <img src="https://via.placeholder.com/400x250/2D3748/FFFFFF?text=Cámara+Sur+Online" 
-                                 alt="Cámara Sur" class="camara-img">
+                            <img src="https://via.placeholder.com/400x250/2D3748/FFFFFF?text=Cámara+Entrada+Online" 
+                                 alt="Cámara Entrada" class="camara-img">
                             <div class="camara-info">
-                                <h3>Cámara Sur - Límite Ciudad</h3>
-                                <p>Monitoreo zona urbana</p>
-                                <button class="btn-ver-camara" onclick="abrirCamara('sur')">
-                                    📱 Ver en Vivo
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="tab-pane" id="tab-este">
-                        <div class="camara-preview">
-                            <img src="https://via.placeholder.com/400x250/2D3748/FFFFFF?text=Cámara+Este+Online" 
-                                 alt="Cámara Este" class="camara-img">
-                            <div class="camara-info">
-                                <h3>Cámara Este - Zona Residencial</h3>
-                                <p>Monitoreo áreas pobladas</p>
-                                <button class="btn-ver-camara" onclick="abrirCamara('este')">
-                                    📱 Ver en Vivo
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="tab-pane" id="tab-oeste">
-                        <div class="camara-preview">
-                            <img src="https://via.placeholder.com/400x250/2D3748/FFFFFF?text=Cámara+Oeste+Online" 
-                                 alt="Cámara Oeste" class="camara-img">
-                            <div class="camara-info">
-                                <h3>Cámara Oeste - Acceso</h3>
-                                <p>Control de accesos</p>
-                                <button class="btn-ver-camara" onclick="abrirCamara('oeste')">
+                                <h3>Cámara Entrada Principal</h3>
+                                <p>Control de accesos y actividad</p>
+                                <button class="btn-ver-camara" onclick="abrirCamara('entrada')">
                                     📱 Ver en Vivo
                                 </button>
                             </div>
